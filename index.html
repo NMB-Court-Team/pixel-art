@@ -230,6 +230,26 @@
         .no-grid .pixel {
             border: none !important;
         }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            text-align: center;
+            border-radius: 5px;
+            padding: 10px;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+
     </style>
 </head>
 <body>
@@ -1028,9 +1048,9 @@ function exportAsText() {
 
     // 将结果复制到剪贴板
     navigator.clipboard.writeText(out).then(() => {
-        console.log('导出的内容已复制到剪贴板');
+        showToast('导出的内容已复制到剪贴板');
     }).catch(err => {
-        console.error('无法复制到剪贴板: ', err);
+        showToast('无法复制到剪贴板: ', err);
     });
 
 }
@@ -1079,6 +1099,7 @@ function importFromText() {
                             }
                         }
                         imported.push(row);
+                        showToast('成功导入！');
                     }
 
                     // 更新画布尺寸
@@ -1087,14 +1108,14 @@ function importFromText() {
                     pixelData = imported;
                     initCanvas();
                 } catch (err) {
-                    alert("导入失败: " + err.message);
+                    showToast("导入失败: " + err.message);
                 }
             } else {
-                alert("请先粘贴像素画数据");
+                showToast("请先粘贴像素画数据");
             }
         }).catch(err => {
             console.error('无法读取剪贴板: ', err);
-            alert("无法读取剪贴板，请手动粘贴数据");
+            showToast("无法读取剪贴板，请手动粘贴数据");
         });
     } else {
         try {
@@ -1134,6 +1155,7 @@ function importFromText() {
                     }
                 }
                 imported.push(row);
+                showToast('成功导入！');
             }
 
             // 更新画布尺寸
@@ -1142,10 +1164,30 @@ function importFromText() {
             pixelData = imported;
             initCanvas();
         } catch (err) {
-            alert("导入失败: " + err.message);
+            showToast("导入失败: " + err.message);
         }
     }
 }
+
+function showToast(message) {
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.innerText = message;
+
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.classList.add('show');
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    document.body.removeChild(toast);
+                }, 300); // 等待过渡效果完成
+            }, 2000); // 显示时间
+        }, 10); // 确保元素被添加到DOM后立即开始动画
+    }
+
 
 /* ====== 鼠标坐标映射 ====== */
 function getPixelFromEvent(e) {
