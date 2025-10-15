@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>像素画编辑器 - v0.8.5</title>
+    <title>像素画编辑器</title>
     <style>
         * {
             box-sizing: border-box;
@@ -234,7 +234,7 @@
 </head>
 <body>
 <div class="container">
-    <h1>🎨 像素画编辑器 v0.8.5</h1>
+    <h1>🎨 像素画编辑器</h1>
     <div class="main-content">
         <div class="canvas-area">
             <div id="canvasWrapper">
@@ -260,7 +260,7 @@
                     <li><b>保存与导出</b>：点击右上角的导出按钮保存为文件</li>
                 </ul>
                 <p style="margin-top:10px;color:#555;">
-                    💡 提示：选区支持矩形和手涂两种方式；手涂选取为逐像素toggle选中状态。
+                    💡 提示：选区支持矩形和手涂两种方式；手涂选取为逐像素切换选中状态。
                 </p>
             </div>
         </div>
@@ -330,8 +330,8 @@
             <div class="panel-section">
                 <h3>导出/导入</h3>
                 <div class="btn-group" style="margin-bottom:10px">
-                    <button id="exportBtn" style="flex:1">📋 导出</button>
-                    <button id="importBtn" style="flex:1;background:#27ae60">📥 导入</button>
+                    <button id="exportBtn" style="flex:1">📋 导出/复制到剪贴板</button>
+                    <button id="importBtn" style="flex:1;background:#27ae60">📥 导入/从剪贴板导入</button>
                     <button id="importImage" title="导入图片">🖼 导入图片</button>
                 </div>
                 <textarea id="exportOutput" placeholder="导出的像素画数据会显示在这里..."></textarea>
@@ -482,7 +482,7 @@ function initCanvas() {
     renderSelectionLayer();
 }
 
-// === 颜色重映射（可靠版） ===
+// === 颜色重映射 ===
 // basePalette: 初始调色板（不变, 用作“索引基准”）
 // currentMapping: 当前 mapping 状态（currentMapping[i] = 当前显示为原始索引 i 的颜色）
 let basePalette = colorPalette.slice();     // 取当前主调色板快照（调用 initRemapPanel 时重新设）
@@ -1025,60 +1025,125 @@ function exportAsText() {
         out += row.join(", ") + "]\n";
     }
     exportOutput.value = out;
+
+    // 将结果复制到剪贴板
+    navigator.clipboard.writeText(out).then(() => {
+        console.log('导出的内容已复制到剪贴板');
+    }).catch(err => {
+        console.error('无法复制到剪贴板: ', err);
+    });
+
 }
 
 function importFromText() {
     const text = exportOutput.value.trim();
     if (!text) {
-        alert("请先粘贴像素画数据");
-        return;
-    }
-    try {
-        const lines = text.split("\n")
-            .map(l => l.trim())
-            .filter(l => l.length !== 0)
-            .map(line => line.replace(/^- +\[/, '').replace(/]$/, ''))
-            .filter(l => l.trim());
-        const newRows = lines.length;
-        const newCols = lines[0].split(",").length;
+        // 如果输入区域为空，尝试从剪贴板导入
+        navigator.clipboard.readText().then(clipboardText => {
+            const trimmedText = clipboardText.trim();
+            if (trimmedText) {
+                try {
+                    const lines = trimmedText.split("\n")
+                        .map(l => l.trim())
+                        .filter(l => l.length !== 0)
+                        .map(line => line.replace(/^- +\[/, '').replace(/]$/, ''))
+                        .filter(l => l.trim());
+                    const newRows = lines.length;
+                    const newCols = lines[0].split(",").length;
 
-        // 计算偏移量，以便在新画布上居中显示图像
-        let offsetX = Math.floor((COLS - newCols) / 2);
-        let offsetY = Math.floor((ROWS - newRows) / 2);
+                    // 计算偏移量，以便在新画布上居中显示图像
+                    let offsetX = Math.floor((COLS - newCols) / 2);
+                    let offsetY = Math.floor((ROWS - newRows) / 2);
 
-        // 如果新的尺寸超过了当前画布尺寸，调整偏移量
-        if (newCols > COLS) offsetX = 0;
-        if (newRows > ROWS) offsetY = 0;
+                    // 如果新的尺寸超过了当前画布尺寸，调整偏移量
+                    if (newCols > COLS) offsetX = 0;
+                    if (newRows > ROWS) offsetY = 0;
 
-        const imported = [];
-        for (let y = 0; y < ROWS; y++) {
-            const row = [];
-            for (let x = 0; x < COLS; x++) {
-                // 计算对应于原图的位置
-                const srcX = x - offsetX;
-                const srcY = y - offsetY;
+                    const imported = [];
+                    for (let y = 0; y < ROWS; y++) {
+                        const row = [];
+                        for (let x = 0; x < COLS; x++) {
+                            // 计算对应于原图的位置
+                            const srcX = x - offsetX;
+                            const srcY = y - offsetY;
 
-                // 如果超出原图范围，则填充背景色
-                if (srcX < 0 || srcX >= newCols || srcY < 0 || srcY >= newRows) {
-                    row.push(colorPalette[0]); // 假设索引0为背景色
-                } else {
-                    const v = lines[srcY].split(",")[srcX].trim().toUpperCase();
-                    let idx = null;
-                    if (/^[0-9A-F]$/.test(v)) idx = parseInt(v, 16); else idx = parseInt(v, 10);
-                    if (isNaN(idx) || idx < 0 || idx >= colorPalette.length) throw new Error(`颜色索引无效: ${v}`);
-                    row.push(colorPalette[idx]);
+                            // 如果超出原图范围，则填充背景色
+                            if (srcX < 0 || srcX >= newCols || srcY < 0 || srcY >= newRows) {
+                                row.push(colorPalette[0]); // 假设索引0为背景色
+                            } else {
+                                const v = lines[srcY].split(",")[srcX].trim().toUpperCase();
+                                let idx = null;
+                                if (/^[0-9A-F]$/.test(v)) idx = parseInt(v, 16); else idx = parseInt(v, 10);
+                                if (isNaN(idx) || idx < 0 || idx >= colorPalette.length) throw new Error(`颜色索引无效: ${v}`);
+                                row.push(colorPalette[idx]);
+                            }
+                        }
+                        imported.push(row);
+                    }
+
+                    // 更新画布尺寸
+                    // document.getElementById("canvasWidth").value = COLS;
+                    // document.getElementById("canvasHeight").value = ROWS;
+                    pixelData = imported;
+                    initCanvas();
+                } catch (err) {
+                    alert("导入失败: " + err.message);
                 }
+            } else {
+                alert("请先粘贴像素画数据");
             }
-            imported.push(row);
-        }
+        }).catch(err => {
+            console.error('无法读取剪贴板: ', err);
+            alert("无法读取剪贴板，请手动粘贴数据");
+        });
+    } else {
+        try {
+            const lines = text.split("\n")
+                .map(l => l.trim())
+                .filter(l => l.length !== 0)
+                .map(line => line.replace(/^- +\[/, '').replace(/]$/, ''))
+                .filter(l => l.trim());
+            const newRows = lines.length;
+            const newCols = lines[0].split(",").length;
 
-        // 更新画布尺寸
-        // document.getElementById("canvasWidth").value = COLS;
-        // document.getElementById("canvasHeight").value = ROWS;
-        pixelData = imported;
-        initCanvas();
-    } catch (err) {
-        alert("导入失败: " + err.message);
+            // 计算偏移量，以便在新画布上居中显示图像
+            let offsetX = Math.floor((COLS - newCols) / 2);
+            let offsetY = Math.floor((ROWS - newRows) / 2);
+
+            // 如果新的尺寸超过了当前画布尺寸，调整偏移量
+            if (newCols > COLS) offsetX = 0;
+            if (newRows > ROWS) offsetY = 0;
+
+            const imported = [];
+            for (let y = 0; y < ROWS; y++) {
+                const row = [];
+                for (let x = 0; x < COLS; x++) {
+                    // 计算对应于原图的位置
+                    const srcX = x - offsetX;
+                    const srcY = y - offsetY;
+
+                    // 如果超出原图范围，则填充背景色
+                    if (srcX < 0 || srcX >= newCols || srcY < 0 || srcY >= newRows) {
+                        row.push(colorPalette[0]); // 假设索引0为背景色
+                    } else {
+                        const v = lines[srcY].split(",")[srcX].trim().toUpperCase();
+                        let idx = null;
+                        if (/^[0-9A-F]$/.test(v)) idx = parseInt(v, 16); else idx = parseInt(v, 10);
+                        if (isNaN(idx) || idx < 0 || idx >= colorPalette.length) throw new Error(`颜色索引无效: ${v}`);
+                        row.push(colorPalette[idx]);
+                    }
+                }
+                imported.push(row);
+            }
+
+            // 更新画布尺寸
+            // document.getElementById("canvasWidth").value = COLS;
+            // document.getElementById("canvasHeight").value = ROWS;
+            pixelData = imported;
+            initCanvas();
+        } catch (err) {
+            alert("导入失败: " + err.message);
+        }
     }
 }
 
@@ -1541,7 +1606,7 @@ function renderColorPalette() {
         b.style.backgroundColor = c;
         b.dataset.color = c;
         b.title = `${i}: ${c}`;
-        if (i === 0) b.classList.add("selected");
+        if (i === 3) b.classList.add("selected");
         b.addEventListener("click", () => {
             document.querySelectorAll(".color-btn").forEach(x => x.classList.remove("selected"));
             b.classList.add("selected");
@@ -1564,9 +1629,10 @@ function renderColorPalette() {
     setupEventListeners();
 })();
 </script>
-<!-- 在body标签结束前加入footer -->
-<a>
-    &copy; 2025 Astrorbits NMBCT™ §AZA圣诞活动专用§
-</a>
+<div style="text-align: center;">
+    <a>
+        &copy; 2025 Astrorbits NMBCT™ §AZA圣诞活动专用§
+    </a>
+</div>
 </body>
 </html>
