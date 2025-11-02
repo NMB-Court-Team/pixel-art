@@ -118,10 +118,10 @@ function setupEventListeners() {
     document.querySelector('.symmetry-btn[data-mode="none"]').classList.add("active");
 
     // 添加触摸事件监听
-    // canvas.addEventListener('touchstart', handleTouchStart, {passive: false});
-    // canvas.addEventListener('touchmove', handleTouchMove, {passive: false});
-    // canvas.addEventListener('touchend', handleTouchEnd, {passive: false});
-    // canvas.addEventListener('touchcancel', handleTouchEnd, {passive: false});
+    canvas.addEventListener('touchstart', handleTouchStart, {passive: false});
+    canvas.addEventListener('touchmove', handleTouchMove, {passive: false});
+    canvas.addEventListener('touchend', handleTouchEnd, {passive: false});
+    canvas.addEventListener('touchcancel', handleTouchEnd, {passive: false});
 
     canvas.addEventListener("mousedown", (e) => handleMouseDown(e));
     canvas.addEventListener("mousemove", (e) => handleMouseMove(e));
