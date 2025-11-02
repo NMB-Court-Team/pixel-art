@@ -476,12 +476,6 @@ function applyPaste() {
 
 /* 取消选区/粘贴 */
 function clearSelection() {
-    // 如果当前处于粘贴或移动预览状态, 用户按取消时我们改为“放下并关闭预览”以符合期望行为
-    if ((selectionMode === 'paste' || selectionMode === 'move') && clipboard) {
-        applyPaste();
-        return;
-    }
-
     // 否则默认只取消当前的选区显示/状态，但保留剪贴板与粘贴内容，
     // 以便用户在按 Esc 或点击“清除选区”后仍能继续粘贴之前复制的内容。
     selectionPixels.clear();

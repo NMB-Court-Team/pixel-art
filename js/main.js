@@ -72,6 +72,9 @@ function setupEventListeners() {
     document.getElementById('selClear').addEventListener('click', () => {
         clearSelection();
     });
+    document.getElementById('selPlace').addEventListener('click', () => {
+        applyPaste();
+    });
 
     // 撤回/重做/清空/导出/导入/添加颜色/resize
     document.getElementById("undo").addEventListener("click", undo);
