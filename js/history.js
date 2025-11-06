@@ -29,8 +29,6 @@ const _LOCAL_KEY = 'pixelEditor:state:v1';
 function saveCanvasToLocal() {
     try {
         const state = {
-            COLS, ROWS,
-            colorPalette,
             pixelData,
             currentMapping,
             currentColor,
@@ -47,15 +45,6 @@ function loadCanvasFromLocal() {
         const raw = localStorage.getItem(_LOCAL_KEY);
         if (!raw) return false;
         const s = JSON.parse(raw);
-        // 恢复尺寸与调色板
-        if (typeof s.COLS === 'number' && typeof s.ROWS === 'number') {
-            COLS = s.COLS;
-            ROWS = s.ROWS;
-        }
-        if (Array.isArray(s.colorPalette) && s.colorPalette.length > 0) {
-            colorPalette = s.colorPalette.slice();
-            basePalette = colorPalette.slice();
-        }
         if (Array.isArray(s.currentMapping) && s.currentMapping.length === basePalette.length) {
             currentMapping = s.currentMapping.slice();
         } else {
