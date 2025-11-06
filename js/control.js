@@ -307,6 +307,8 @@ function handleKeyDown(e) {
     const inInput = tag === "input" || tag === "textarea" || document.activeElement?.isContentEditable;
     if (inInput) return;
 
+
+
     if (e.key === "Enter" && clipboard) {
         if (selectionMode === "paste" || selectionMode === "move") applyPaste();
     }
@@ -319,6 +321,8 @@ function handleKeyDown(e) {
         e.preventDefault();
         tool();
     }
+    if ((e.key === 'c' || e.key === 'x') && e.ctrlKey && !selectionBounds) return
+    if (e.key === 'v' && e.ctrlKey && !clipboard) return
     if (e.ctrlKey || e.metaKey) {
         const fn = shortcuts[e.key.toLowerCase()];
         if (fn) {

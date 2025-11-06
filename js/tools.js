@@ -1,9 +1,9 @@
 // 原调色板
 const colorPalette = [
-    "#FFFFFF", "#D3D3D3", "#808080", "#000000",
-    "#B02E26", "#5E7C16", "#835432", "#3C44AA",
-    "#8932B8", "#169C9C", "#F38BAA", "#80C71F",
-    "#FED83D", "#3AB3DA", "#C74EBD", "#F9801D"
+    "#ffffff", "#d3d3d3", "#808080", "#000000",
+    "#b02e26", "#5e7c16", "#835432", "#3c44aa",
+    "#8932b8", "#169c9c", "#f38baa", "#80c71f",
+    "#fed83d", "#3ab3da", "#c74ebd", "#f9801d"
 ];
 /* ====== DOM 元素 ====== */
 const colorPaletteContainer = document.getElementById("colorPalette");
@@ -126,9 +126,8 @@ let remapSelected = null;
 
 // 初始化 / 渲染 remap 面板（调用位置：renderColorPalette() 后或 init 时）
 function initRemapPanel() {
-    // 如果调色板变了（新增颜色）, 重置 basePalette, 保持长度一致
     basePalette = colorPalette.slice();
-    if (!currentMapping || currentMapping.length !== basePalette.length) currentMapping = basePalette.slice();
+    currentMapping = basePalette.slice();
 
     const grid = document.getElementById("remapGrid");
     if (!grid) return; // 如果 DOM 没有这个容器就直接返回
