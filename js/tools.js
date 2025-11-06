@@ -1,4 +1,5 @@
-let colorPalette = [
+// 原调色板
+const colorPalette = [
     "#FFFFFF", "#D3D3D3", "#808080", "#000000",
     "#B02E26", "#5E7C16", "#835432", "#3C44AA",
     "#8932B8", "#169C9C", "#F38BAA", "#80C71F",
@@ -642,9 +643,6 @@ function importFromText() {
                 showToast('成功导入！');
             }
 
-            // 更新画布尺寸
-            // document.getElementById("canvasWidth").value = COLS;
-            // document.getElementById("canvasHeight").value = ROWS;
             pixelData = imported;
             initCanvas();
         } catch (err) {
@@ -652,6 +650,63 @@ function importFromText() {
         }
     }
 }
+/* ====== 导入图片 ====== */
+
+// RGB -> HEX, HEX -> RGB
+function hexToRgb(hex) {
+    const n = parseInt(hex.slice(1), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+function rgbToHex(r, g, b) {
+    return "#" + [r, g, b].map(v => v.toString(16).padStart(2, "0")).join("");
+}
+let RGB = false;
+// RGB -> Lab
+function rgbToLab(r, g, b) {
+    if( RGB ) return [r, g, b];
+    [r, g, b] = [r, g, b].map(v => {
+        v /= 255;
+        return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+    });
+
+    const x = (r * 0.4124 + g * 0.3576 + b * 0.1805) / 0.95047;
+    const y =  r * 0.2126 + g * 0.7152 + b * 0.0722;// 1.00000;
+    const z = (r * 0.0193 + g * 0.1192 + b * 0.9505) / 1.08883;
+
+    const f = t => t > 0.008856 ? t ** (1/3) : (7.787 * t) + (16 / 116);
+    return [
+        (116 * f(y)) - 16,
+        500 * (f(x) - f(y)),
+        200 * (f(y) - f(z))
+    ];
+}
+
+// 提前转换整个调色板
+const paletteLab = colorPalette.map(hex => {
+    const [r,g,b] = hexToRgb(hex);
+    return { hex, lab: rgbToLab(r,g,b) };
+});
+
+function findNearestPaletteColor(palette, targetHex) {
+    const [r, g, b] = hexToRgb(targetHex);
+    const [L1, a1, b1] = rgbToLab(r, g, b);
+
+    let minDist = Infinity;
+    let nearest = palette[0].hex;
+
+    for (const { hex, lab } of palette) {
+        const [L2, a2, b2] = lab;
+        const d = (L1 - L2) ** 2 + (a1 - a2) ** 2 + (b1 - b2) ** 2;
+        if (d < minDist) {
+            minDist = d;
+            nearest = hex;
+        }
+    }
+
+    return nearest;
+}
+
 
 async function importImageToCanvas(dataUrl) {
     const img = new Image();
@@ -673,7 +728,7 @@ async function importImageToCanvas(dataUrl) {
                 const g = imgData[i + 1];
                 const b = imgData[i + 2];
                 const color = rgbToHex(r, g, b);
-                const nearest = findNearestPaletteColor(colorPalette, color);
+                const nearest = findNearestPaletteColor(paletteLab, color);
                 pixelData[y][x] = nearest;
                 const px = canvas.querySelector(`.pixel[data-x="${x}"][data-y="${y}"]`);
                 if (px) px.style.backgroundColor = nearest;
