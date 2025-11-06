@@ -652,6 +652,21 @@ function importFromText() {
 }
 /* ====== 导入图片 ====== */
 
+function importImageBtnHandle(rgb){
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.onchange = e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => importImageToCanvas(ev.target.result, rgb);
+        reader.readAsDataURL(file);
+    };
+    input.click();
+}
+
+
 // RGB -> HEX, HEX -> RGB
 function hexToRgb(hex) {
     const n = parseInt(hex.slice(1), 16);
@@ -661,10 +676,9 @@ function hexToRgb(hex) {
 function rgbToHex(r, g, b) {
     return "#" + [r, g, b].map(v => v.toString(16).padStart(2, "0")).join("");
 }
-let RGB = false;
+
 // RGB -> Lab
 function rgbToLab(r, g, b) {
-    if( RGB ) return [r, g, b];
     [r, g, b] = [r, g, b].map(v => {
         v /= 255;
         return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
@@ -688,7 +702,7 @@ const paletteLab = colorPalette.map(hex => {
     return { hex, lab: rgbToLab(r,g,b) };
 });
 
-function findNearestPaletteColor(palette, targetHex) {
+function findNearestLabColor(palette, targetHex) {
     const [r, g, b] = hexToRgb(targetHex);
     const [L1, a1, b1] = rgbToLab(r, g, b);
 
@@ -707,8 +721,22 @@ function findNearestPaletteColor(palette, targetHex) {
     return nearest;
 }
 
+// 查找调色板中最接近的颜色
+function findNearestRGBColor(palette, targetHex) {
+    const [r1, g1, b1] = hexToRgb(targetHex);
+    let minDist = Infinity, nearest = palette[0];
+    for (const c of palette) {
+        const [r2, g2, b2] = hexToRgb(c);
+        const d = (r1 - r2) ** 2 + (g1 - g2) ** 2 + (b1 - b2) ** 2;
+        if (d < minDist) {
+            minDist = d;
+            nearest = c;
+        }
+    }
+    return nearest;
+}
 
-async function importImageToCanvas(dataUrl) {
+async function importImageToCanvas(dataUrl, rgb) {
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => {
@@ -728,7 +756,9 @@ async function importImageToCanvas(dataUrl) {
                 const g = imgData[i + 1];
                 const b = imgData[i + 2];
                 const color = rgbToHex(r, g, b);
-                const nearest = findNearestPaletteColor(paletteLab, color);
+                let nearest
+                if (rgb) nearest = findNearestRGBColor(colorPalette, color);
+                    else nearest = findNearestLabColor(paletteLab, color);
                 pixelData[y][x] = nearest;
                 const px = canvas.querySelector(`.pixel[data-x="${x}"][data-y="${y}"]`);
                 if (px) px.style.backgroundColor = nearest;
@@ -736,4 +766,34 @@ async function importImageToCanvas(dataUrl) {
         }
     };
     img.src = dataUrl;
+}
+
+function exportImageBtnHandle() {
+    const scale = 16; // 导出倍率，可改为 4、8 等
+    const exportCanvas = document.createElement("canvas");
+    exportCanvas.width = COLS * scale;
+    exportCanvas.height = ROWS * scale;
+    const ctx = exportCanvas.getContext("2d");
+    ctx.imageSmoothingEnabled = false;
+
+    // 遍历每个像素绘制放大方块
+    for (let y = 0; y < ROWS; y++) {
+        for (let x = 0; x < COLS; x++) {
+            const color = pixelData[y][x];
+            if (!color || color === "transparent" || color === "none") continue;
+            ctx.fillStyle = color;
+            ctx.fillRect(x * scale, y * scale, scale, scale);
+        }
+    }
+
+    // 生成下载
+    exportCanvas.toBlob(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        const timestamp = new Date().toISOString().replace(/[-:T]/g, "").slice(0, 14);
+        a.href = url;
+        a.download = `pixel_art_${scale}x_${timestamp}.png`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }, "image/png");
 }

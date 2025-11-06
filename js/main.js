@@ -93,18 +93,16 @@ function setupEventListeners() {
     window.addEventListener("resize", resizeWrapper);
     // ======= 导入图片 ======
 
-    document.getElementById("importImage").addEventListener("click", () => {
-        const input = document.createElement("input");
-        input.type = "file";
-        input.accept = "image/*";
-        input.onchange = e => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = ev => importImageToCanvas(ev.target.result);
-            reader.readAsDataURL(file);
-        };
-        input.click();
+    document.getElementById("importImage_Lab").addEventListener("click", () => {
+        importImageBtnHandle(false)
+    });
+
+    document.getElementById("importImage_RGB").addEventListener("click", () => {
+        importImageBtnHandle(true)
+    });
+
+    document.getElementById("exportImage").addEventListener("click", () => {
+        exportImageBtnHandle()
     });
 
     // symmetry

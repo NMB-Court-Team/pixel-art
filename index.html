@@ -28,16 +28,20 @@
                     <li><b>按键快捷键</b>：笔刷 B, 橡皮擦 E, 取色 Alt, 填充 F, 选区 M, 网格 G</li>
                     <li><b>撤回与重做</b>：Ctrl + Z 撤回 Ctrl + Y 重做</li>
                     <li><b>选区</b>：长按拖动选取，粘贴后可拖动,Shift + 拖动 叠加选区。按 Enter 放置, Esc 取消</li>
-                    <li>——选区支持矩形和手涂两种方式；手涂选取为逐像素切换选中状态。</li>
+                    ——选区支持矩形和手涂两种方式；手涂选取为逐像素切换选中状态。
                     <li><b>Ctrl + C / X / V</b>：复制 / 剪切 / 粘贴选区</li>
                     <li><b>对称模式</b>：将绘制操作对称，试试就知道了</li>
                     <li><b>调色板</b>：因为是做进地图里的所以没法很复杂，就16种颜色，发挥想象力吧()</li>
                     <li><b>颜色重映射</b>：点击两个颜色进行互换, 将颜色重新映射。🎲随机打乱颜色，↩️恢复原始颜色映射</li>
                     <li><b>导入导出</b>：点击右侧导出自动复制到剪贴板，导入会从输入框读取，没有就从剪贴板拿</li>
                     <li><b>导入图片</b>：使用就近颜色和像素强制把图片缩放到画布上</li>
+                    ——RGB/Lab：色彩空间，如果感觉不合适就试试另一个
+                    <li><b>导出图片</b>：直接下载一个放大16倍的像素画（可以用来传播/导入）</li>
+                    <li><b>提交</b>：一定要把导出的内容全选复制完全。</li>
+                    <li><b>数据内容</b>：0~F对应0~15，每个数字代表一个像素，颜色对应调色板里的位置</li>
                 </ul>
                 <p style="margin-top:10px;color:#555;">
-                    💡 提示：虽然网页关闭时会自动保存，还请手动保存防止丢失
+                    💡 提示：虽然网页关闭时会自动保存，还请手动保存或导出图片等形式防止丢失
                 </p>
             </div>
         </div>
@@ -107,11 +111,14 @@
                 <div class="btn-group" style="margin-bottom:10px">
                     <button id="exportBtn" style="flex:1">📋 导出/复制到剪贴板</button>
                     <button id="importBtn" style="flex:1">📥 导入/从剪贴板导入</button>
-                    <button id="importImage" title="导入图片">🖼 导入图片<br>(Lab色彩近似)</button>
                 </div>
-                <textarea id="exportOutput" placeholder="导出的像素画数据会显示在这里..."></textarea>
-                <div style="margin-top:8px;font-size:12px;color:#666">💡 每一行形如 <code>- [0, 1, 2, ...]</code>,
-                    每个数字代表颜色在调色板中的序号（0-F）, 从左到右、从上到下排列。
+                <textarea id="exportOutput" placeholder="数据有很多行，一定要全选复制完全！"></textarea>
+                <div style="margin-top:8px;font-size:12px;color:#666">💡 导入图片的颜色可能不尽人意，两个色彩都要试试！
+                </div>
+                <div class="btn-group" style="margin-bottom:10px">
+                    <button id="importImage_Lab" title="导入图片">🖼 导入图片<br>Lab色彩近似</button>
+                    <button id="importImage_RGB" title="导入图片">🖼 导入图片<br>RGB色彩近似</button>
+                    <button id="exportImage" title="导出图片">🖼 导出图片</button>
                 </div>
             </div>
             <div class="panel-section">
