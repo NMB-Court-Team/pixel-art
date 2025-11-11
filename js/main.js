@@ -101,8 +101,8 @@ function setupEventListeners() {
         importImageBtnHandle(true)
     });
 
-    document.getElementById("exportImage").addEventListener("click", () => {
-        exportImageBtnHandle()
+    document.getElementById("exportImage").addEventListener("click", (event) => {
+        exportImageBtnHandle(event)
     });
 
     // symmetry

@@ -767,8 +767,12 @@ async function importImageToCanvas(dataUrl, rgb) {
     img.src = dataUrl;
 }
 
-function exportImageBtnHandle() {
-    const scale = 16; // 导出倍率，可改为 4、8 等
+function exportImageBtnHandle(event) {
+
+    let scale = 16;
+    if ( event.altKey ) {
+        scale = 1;
+    }
     const exportCanvas = document.createElement("canvas");
     exportCanvas.width = COLS * scale;
     exportCanvas.height = ROWS * scale;
