@@ -97,7 +97,7 @@
   function renderMarkerLayer(layer,key,markers){if(layer.dataset.key===key)return;layer.dataset.key=key;layer.replaceChildren();markers.forEach(marker=>{const circle=document.createElementNS(SVG_NS,'circle'),label=document.createElementNS(SVG_NS,'text');circle.setAttribute('cx',marker.x);circle.setAttribute('cy',marker.y);circle.setAttribute('r',marker.active?8:6);circle.setAttribute('fill',marker.color);circle.setAttribute('stroke',contrastText(marker.color));circle.classList.add('palette-marker');if(marker.active)circle.classList.add('active');label.setAttribute('x',marker.x);label.setAttribute('y',marker.y);label.setAttribute('fill',contrastText(marker.color));label.classList.add('palette-marker-label');label.textContent=marker.label;layer.append(circle,label)})}
   function updateCandidateMarker(marker,x,y,visible=true){marker.setAttribute('cx',x);marker.setAttribute('cy',y);marker.style.opacity=visible?'1':'0';marker.style.setProperty('--candidate-color',candidate);marker.style.setProperty('--candidate-stroke',candidateIsValid?contrastText(candidate):'#ff3b30')}
 
-  const makeDefaultState=()=>({palette:DEFAULT_COLORS.map((color,i)=>({id:`p${i}`,color})),pixels:Array(SIZE*SIZE).fill(null),currentId:null,tool:'pen',symmetry:'none',grid:true,minDeltaE:DEFAULT_MIN_DELTA_E});
+  const makeDefaultState=()=>({palette:DEFAULT_COLORS.map((color,i)=>({id:`p${i}`,color})),pixels:Array(SIZE*SIZE).fill(null),currentId:null,tool:'pen',symmetry:'none',grid:false,minDeltaE:DEFAULT_MIN_DELTA_E});
   let state = makeDefaultState();
   let selection = new Set(), clipboard = null, paste = null;
   let zoom=1, panX=0, panY=0;
