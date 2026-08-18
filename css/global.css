@@ -26,3 +26,4 @@ body.dark-theme{--bg:#0e1115;--surface:#15191e;--raised:#1a1f25;--soft:#232930;-
 @media(max-width:600px){.color-sidebar .color-map-stack{width:min(100%,266px)}.color-sidebar .wheel-map-stack{width:min(100%,190px)}}
 .color-actions{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px}.color-actions button{min-width:0;padding-inline:9px}.color-actions .add-color-action{grid-column:1/-1;width:100%}.color-inspector>.color-actions{grid-column:1/-1}
 .color-inspector h3{gap:7px}.color-inspector h3 #studioPaletteCount{margin-left:auto}.color-inspector h3 .palette-clear{width:auto;min-height:0;padding:4px 8px;border-radius:6px;font-size:9px;line-height:1.1}
+.brush-radius-control{display:flex;align-items:center;gap:8px;padding:0 10px;color:var(--muted);font-size:10px;white-space:nowrap}.brush-radius-control input{width:140px;accent-color:var(--accent)}.brush-radius-control output{min-width:30px;color:var(--ink);font:650 10px/1 ui-monospace,monospace}

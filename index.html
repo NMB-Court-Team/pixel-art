@@ -7,15 +7,15 @@
   <meta name="description" content="支持感知色差调色板的 45×45 像素画编辑器">
   <title>Pixel Atelier · 像素画工作台</title>
   <link rel="icon" href="assets/icon.png" type="image/png">
-  <link rel="stylesheet" href="css/global.css?v=20260819-28">
+  <link rel="stylesheet" href="css/global.css?v=20260819-29">
   <style>.topbar{grid-template-columns:minmax(0,1fr) auto}.stage-head{justify-content:flex-end}@media(max-width:900px){.topbar{grid-template-columns:minmax(0,1fr) auto}}@media(max-width:600px){.stage-head>div:first-child{display:flex}}</style>
 </head>
 <body class="dark-theme">
 <div class="app">
   <header class="topbar">
     <nav id="toolStrip" class="tool-strip" aria-label="绘图工具">
-      <button class="tool active" data-tool="pen" title="画笔 B · Shift 点击连接上一笔终点"><i>✎</i><span>画笔</span></button>
-      <button class="tool" data-tool="eraser" title="橡皮 E"><i>◇</i><span>橡皮</span></button>
+      <button class="tool active" data-tool="pen" data-panel="brushPanel" title="画笔 B · Shift 点击连接上一笔终点"><i>✎</i><span>画笔</span></button>
+      <button class="tool" data-tool="eraser" data-panel="brushPanel" title="橡皮 E"><i>◇</i><span>橡皮</span></button>
       <button class="tool" data-tool="eyedropper" title="取色 Alt"><i>⌁</i><span>取色</span></button>
       <button class="tool" data-tool="fill" data-panel="fillPanel" title="填充 F"><i>◒</i><span>填充</span></button>
       <button class="tool" data-tool="line" title="直线"><i>╱</i><span>直线</span></button>
@@ -33,6 +33,11 @@
   </header>
 
   <section id="optionDock" class="option-dock" aria-live="polite">
+    <div id="brushPanel" class="option-panel">
+      <span id="brushPanelLabel" class="panel-label">画笔笔尖</span>
+      <button data-brush-shape="circle">圆形</button><button data-brush-shape="square" class="active">方形</button>
+      <label class="brush-radius-control">半径 <input id="brushRadius" type="range" min="0" max="8" step="1" value="0"><output>0 px</output></label>
+    </div>
     <div id="fillPanel" class="option-panel">
       <span class="panel-label">填充模式</span>
       <button data-fill-mode="adjacent" class="active">邻接填充</button><button data-fill-mode="selection">选区填充</button>
@@ -113,6 +118,6 @@
 
 <dialog id="dataDialog" class="studio-dialog"><form method="dialog" class="dialog-frame data-dialog"><header><h2>项目数据</h2><button class="close-btn" value="close">×</button></header><textarea id="projectData" spellcheck="false"></textarea><div class="dialog-actions"><button id="copyProjectData" type="button">复制</button><button id="applyProjectData" type="button" class="accent">导入</button></div></form></dialog>
 
-<script src="js/app.js?v=20260819-41"></script>
+<script src="js/app.js?v=20260819-44"></script>
 </body>
 </html>
