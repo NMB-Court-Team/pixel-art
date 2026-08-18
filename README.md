@@ -27,16 +27,6 @@
 - 删除单个颜色或清空调色板前会要求确认，相关画布像素会变为透明，并可通过撤销恢复
 - 新增或导入颜色达到 16 色上限时会阻止操作并提示；低于最小 ΔE00 下限的输入会标红并回退
 
-## 使用
-
-直接打开 `index.html`，或启动任意静态文件服务器：
-
-```shell
-python -m http.server 4173
-```
-
-然后访问 `http://localhost:4173`。
-
 ## 浏览器兼容性
 
 建议使用当前仍受支持的 Chrome、Edge、Firefox 或 Safari。项目依赖原生对话框、Pointer Events、ResizeObserver 和 Canvas；较旧的浏览器或内嵌 WebView 不在兼容范围内。通过 `file://` 直接打开时，项目数据复制会在 Clipboard API 不可用时自动回退到传统复制方式。
