@@ -72,7 +72,7 @@
       </div>
       <div class="viewport-help"><span>滚轮缩放 · 右键拖动</span><span>双指缩放与移动</span></div>
     </div>
-    <div class="statusbar"><span id="statusTool">画笔</span><span id="statusColor"><i></i><b>#000000</b></span><span id="statusCursor">—, —</span><span id="saveStatus">已自动保存</span></div>
+    <div class="statusbar"><span id="statusTool">画笔</span><span id="statusColor"><i style="background:#777777"></i><b>#777777</b></span><span id="statusCursor">—, —</span><span id="saveStatus">已自动保存</span></div>
   </main>
 
   <aside id="colorDialog" class="color-sidebar" aria-label="颜色工作室">
@@ -81,20 +81,20 @@
       <div class="studio-body">
         <section class="color-space">
           <div id="labView" class="color-view active"><div class="color-map-stack"><canvas id="labCanvas" width="420" height="300"></canvas><svg id="labOverlay" class="color-map-overlay" viewBox="0 0 420 300" aria-hidden="true"><g id="labRestrictionLayer"></g><g id="labMarkerLayer"></g><circle id="labCandidateMarker" class="candidate-marker" r="7"></circle></svg></div><label>L* 亮度 <input id="labLightness" type="range" min="0" max="100" value="50"><output>50</output></label></div>
-          <div id="wheelView" class="color-view"><div class="color-map-stack wheel-map-stack"><canvas id="wheelCanvas" width="360" height="360"></canvas><svg id="wheelOverlay" class="color-map-overlay" viewBox="0 0 360 360" aria-hidden="true"><g id="wheelRestrictionLayer"></g><g id="wheelMarkerLayer"></g><circle id="wheelCandidateMarker" class="candidate-marker" r="7"></circle></svg></div><label>明度 <input id="wheelLightness" type="range" min="5" max="95" value="50"><output>50%</output></label></div>
+          <div id="wheelView" class="color-view"><div class="color-map-stack wheel-map-stack"><canvas id="wheelCanvas" width="360" height="360"></canvas><svg id="wheelOverlay" class="color-map-overlay" viewBox="0 0 360 360" aria-hidden="true"><g id="wheelRestrictionLayer"></g><g id="wheelMarkerLayer"></g><circle id="wheelCandidateMarker" class="candidate-marker" r="7"></circle></svg></div><label>明度 <input id="wheelLightness" type="range" min="5" max="95" value="47"><output>47%</output></label></div>
           <div id="channelsView" class="color-view channels-view">
-            <label class="hex-field">HEX <input id="hexInput" maxlength="7" value="#000000"><button id="nativePicker" type="button">拾色器</button><input id="nativeColor" type="color" value="#000000" tabindex="-1"></label>
-            <fieldset><legend>RGB</legend><label>R <input id="rgbR" type="range" min="0" max="255"><output>0</output></label><label>G <input id="rgbG" type="range" min="0" max="255"><output>0</output></label><label>B <input id="rgbB" type="range" min="0" max="255"><output>0</output></label></fieldset>
-            <fieldset><legend>HSL</legend><label>H <input id="hslH" type="range" min="0" max="360"><output>0°</output></label><label>S <input id="hslS" type="range" min="0" max="100"><output>0%</output></label><label>L <input id="hslL" type="range" min="0" max="100"><output>0%</output></label></fieldset>
-            <fieldset><legend>Lab</legend><label>L* <input id="labLInput" type="number" min="0" max="100" step="0.1"></label><label>a* <input id="labAInput" type="number" min="-128" max="127" step="0.1"></label><label>b* <input id="labBInput" type="number" min="-128" max="127" step="0.1"></label></fieldset>
+            <label class="hex-field">HEX <input id="hexInput" maxlength="7" value="#777777"><button id="nativePicker" type="button">拾色器</button><input id="nativeColor" type="color" value="#777777" tabindex="-1"></label>
+            <fieldset><legend>RGB</legend><label>R <input id="rgbR" type="range" min="0" max="255" value="119"><output>119</output></label><label>G <input id="rgbG" type="range" min="0" max="255" value="119"><output>119</output></label><label>B <input id="rgbB" type="range" min="0" max="255" value="119"><output>119</output></label></fieldset>
+            <fieldset><legend>HSL</legend><label>H <input id="hslH" type="range" min="0" max="360" value="0"><output>0°</output></label><label>S <input id="hslS" type="range" min="0" max="100" value="0"><output>0%</output></label><label>L <input id="hslL" type="range" min="0" max="100" value="47"><output>47%</output></label></fieldset>
+            <fieldset><legend>Lab</legend><label>L* <input id="labLInput" type="number" min="0" max="100" step="0.1" value="50.0"></label><label>a* <input id="labAInput" type="number" min="-128" max="127" step="0.1" value="0.0"></label><label>b* <input id="labBInput" type="number" min="-128" max="127" step="0.1" value="0.0"></label></fieldset>
           </div>
         </section>
         <section class="color-inspector">
-          <div id="candidatePreview" class="candidate-preview"><span></span><div><small>候选颜色</small><b>#000000</b></div></div>
+          <div id="candidatePreview" class="candidate-preview"><span style="background:#777777"></span><div><small>候选颜色</small><b>#777777</b></div></div>
           <div id="colorValidation" class="validation ok">可添加到调色板</div>
           <div class="color-actions"><button id="updateSelectedColor" type="button" class="accent" title="也可在色图上按 Alt 单击">更新选中颜色</button><button id="deleteSelectedColor" type="button" class="danger" disabled>删除选中颜色</button><button id="addCandidateColor" type="button" class="quiet add-color-action" title="也可在色图上按 Shift 单击">添加新颜色到调色板</button></div>
           <h3>调色板 <span id="studioPaletteCount">0 / 16</span><button id="clearPalette" type="button" class="danger palette-clear" disabled>清空</button></h3><label class="delta-rule-control">最小 ΔE00 <input id="minDeltaE" type="number" min="8" step="0.1" value="12" inputmode="decimal"><small>内置下限 8</small></label><div id="studioPalette" class="studio-palette" aria-label="颜色列表"></div>
-          <p class="studio-tip">拖动色图只预览；Shift + 单击添加新颜色，Alt + 单击更新选中颜色。调色板颜色可点击编辑、长按或拖动排序，颜色之间至少相差 ΔE00 <span id="paletteDeltaRule">8</span>。</p>
+          <p class="studio-tip">拖动色图只预览；Shift + 单击添加新颜色，Alt + 单击更新选中颜色。调色板颜色可点击编辑、长按或拖动排序，颜色之间至少相差 ΔE00 <span id="paletteDeltaRule">12</span>。</p>
         </section>
       </div>
     </div>
@@ -113,6 +113,6 @@
 
 <dialog id="dataDialog" class="studio-dialog"><form method="dialog" class="dialog-frame data-dialog"><header><h2>项目数据</h2><button class="close-btn" value="close">×</button></header><textarea id="projectData" spellcheck="false"></textarea><div class="dialog-actions"><button id="copyProjectData" type="button">复制</button><button id="applyProjectData" type="button" class="accent">导入</button></div></form></dialog>
 
-<script src="js/app.js?v=20260819-36"></script>
+<script src="js/app.js?v=20260819-38"></script>
 </body>
 </html>
