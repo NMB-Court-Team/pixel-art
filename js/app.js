@@ -186,7 +186,7 @@
   function paintPoint(x,y,id=state.currentId){symmetryPoints(x,y).forEach(p=>{if(pixelEditable(p.x,p.y))state.pixels[indexOf(p.x,p.y)]=id})}
   function paintLine(a,b,id){linePoints(a.x,a.y,b.x,b.y).forEach(p=>paintPoint(p.x,p.y,id));renderCanvas()}
   function flood(x,y,newId){if(!pixelEditable(x,y))return;const target=state.pixels[indexOf(x,y)];if(target===newId)return;const q=[[x,y]],seen=new Set();while(q.length){const [cx,cy]=q.pop(),key=`${cx},${cy}`;if(cx<0||cy<0||cx>=SIZE||cy>=SIZE||seen.has(key)||!pixelEditable(cx,cy)||state.pixels[indexOf(cx,cy)]!==target)continue;seen.add(key);state.pixels[indexOf(cx,cy)]=newId;q.push([cx+1,cy],[cx-1,cy],[cx,cy+1],[cx,cy-1])}}
-  function canvasPos(e){const r=dom.canvas.getBoundingClientRect(),x=Math.floor((e.clientX-r.left)/r.width*SIZE),y=Math.floor((e.clientY-r.top)/r.height*SIZE);return x>=0&&y>=0&&x<SIZE&&y<SIZE?{x,y}:null}
+  function canvasPos(e,clampToCanvas=false){const r=dom.canvas.getBoundingClientRect(),x=Math.floor((e.clientX-r.left)/r.width*SIZE),y=Math.floor((e.clientY-r.top)/r.height*SIZE);if(clampToCanvas)return{x:clamp(x,0,SIZE-1),y:clamp(y,0,SIZE-1)};return x>=0&&y>=0&&x<SIZE&&y<SIZE?{x,y}:null}
 
   const pointers=new Map();let panSession=null,pinchSession=null,suppressCanvasMenu=false;
   function updateDrawingCursor(){dom.viewport.classList.toggle('drawing',!!drawSession&&!drawSession.kind)}
@@ -204,7 +204,7 @@
     updateDrawingCursor()
   }
   function pointerMove(e){
-    if(pointers.has(e.pointerId))pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});const pos=canvasPos(e);$('#statusCursor').textContent=pos?`${pos.x}, ${pos.y}`:'—, —';
+    if(pointers.has(e.pointerId))pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});const insidePos=canvasPos(e),pos=insidePos||(drawSession?.tool==='select'&&selectionMode()==='rect'?canvasPos(e,true):null);$('#statusCursor').textContent=pos?`${pos.x}, ${pos.y}`:'—, —';
     if(pinchSession&&pointers.size>=2){const p=[...pointers.values()],dist=Math.hypot(p[1].x-p[0].x,p[1].y-p[0].y),cx=(p[0].x+p[1].x)/2,cy=(p[0].y+p[1].y)/2;zoom=clamp(pinchSession.zoom*dist/pinchSession.dist,MIN_ZOOM,MAX_ZOOM);panX=pinchSession.panX+(cx-pinchSession.cx);panY=pinchSession.panY+(cy-pinchSession.cy);applyTransform();return}
     if(panSession){panX=panSession.panX+e.clientX-panSession.x;panY=panSession.panY+e.clientY-panSession.y;applyTransform();return}
     if(!drawSession)return;if(!pos){if(drawSession.tool==='pen'||drawSession.tool==='eraser')drawSession.last=null;return}
