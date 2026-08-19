@@ -7,13 +7,14 @@
   <meta name="description" content="支持感知色差调色板的 45×45 像素画编辑器">
   <title>Pixel Atelier · 像素画工作台</title>
   <link rel="icon" href="assets/icon.png" type="image/png">
-  <link rel="stylesheet" href="css/global.css?v=20260819-29">
+  <link rel="stylesheet" href="css/global.css?v=20260819-31">
   <style>.topbar{grid-template-columns:minmax(0,1fr) auto}.stage-head{justify-content:flex-end}@media(max-width:900px){.topbar{grid-template-columns:minmax(0,1fr) auto}}@media(max-width:600px){.stage-head>div:first-child{display:flex}}</style>
 </head>
 <body class="dark-theme">
 <div class="app">
   <header class="topbar">
     <nav id="toolStrip" class="tool-strip" aria-label="绘图工具">
+      <button class="tool" data-action="files" data-panel="filesPanel" title="导入导出"><i>⇅</i><span>文件</span></button>
       <button class="tool active" data-tool="pen" data-panel="brushPanel" title="画笔 B · Shift 点击连接上一笔终点"><i>✎</i><span>画笔</span></button>
       <button class="tool" data-tool="eraser" data-panel="brushPanel" title="橡皮 E"><i>◇</i><span>橡皮</span></button>
       <button class="tool" data-tool="eyedropper" title="取色 Alt"><i>⌁</i><span>取色</span></button>
@@ -24,7 +25,6 @@
       <button class="tool" data-tool="select" data-panel="selectionPanel" title="选区 M"><i>▭</i><span>选区</span></button>
       <button class="tool" data-action="symmetry" data-panel="symmetryPanel" title="对称"><i>⌁</i><span>对称</span></button>
       <button class="tool" data-action="history" data-panel="historyPanel" title="历史记录"><i>↶</i><span>历史</span></button>
-      <button class="tool" data-action="files" data-panel="filesPanel" title="导入导出"><i>⇅</i><span>文件</span></button>
     </nav>
     <div class="top-actions">
       <button id="undo" class="icon-btn" title="撤销 Ctrl+Z">↶</button><button id="redo" class="icon-btn" title="重做 Ctrl+Y">↷</button>
@@ -70,6 +70,7 @@
       </div>
     </section>
     <div id="viewport" class="viewport">
+      <button id="cancelCanvasSelection" class="canvas-selection-cancel" type="button" data-selection-action="clear" hidden>× 取消选区</button>
       <div class="transparency-pattern" aria-hidden="true"></div>
       <div id="canvasTransform" class="canvas-transform">
         <div id="canvas" class="pixel-canvas" role="img" aria-label="45乘45像素画布"></div>
@@ -118,6 +119,6 @@
 
 <dialog id="dataDialog" class="studio-dialog"><form method="dialog" class="dialog-frame data-dialog"><header><h2>项目数据</h2><button class="close-btn" value="close">×</button></header><textarea id="projectData" spellcheck="false"></textarea><div class="dialog-actions"><button id="copyProjectData" type="button">复制</button><button id="applyProjectData" type="button" class="accent">导入</button></div></form></dialog>
 
-<script src="js/app.js?v=20260819-44"></script>
+<script src="js/app.js?v=20260819-45"></script>
 </body>
 </html>

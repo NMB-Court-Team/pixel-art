@@ -27,3 +27,41 @@ body.dark-theme{--bg:#0e1115;--surface:#15191e;--raised:#1a1f25;--soft:#232930;-
 .color-actions{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px}.color-actions button{min-width:0;padding-inline:9px}.color-actions .add-color-action{grid-column:1/-1;width:100%}.color-inspector>.color-actions{grid-column:1/-1}
 .color-inspector h3{gap:7px}.color-inspector h3 #studioPaletteCount{margin-left:auto}.color-inspector h3 .palette-clear{width:auto;min-height:0;padding:4px 8px;border-radius:6px;font-size:9px;line-height:1.1}
 .brush-radius-control{display:flex;align-items:center;gap:8px;padding:0 10px;color:var(--muted);font-size:10px;white-space:nowrap}.brush-radius-control input{width:140px;accent-color:var(--accent)}.brush-radius-control output{min-width:30px;color:var(--ink);font:650 10px/1 ui-monospace,monospace}
+
+.canvas-selection-cancel{position:absolute;top:12px;left:12px;z-index:4;min-height:40px;padding:8px 12px;border-color:color-mix(in srgb,var(--danger) 45%,var(--line));background:color-mix(in srgb,var(--raised) 92%,transparent);color:var(--danger);box-shadow:0 5px 18px rgba(0,0,0,.2);backdrop-filter:blur(6px)}
+.canvas-selection-cancel[hidden]{display:none}
+.option-dock,.stage-shell{min-width:0}
+
+/* Keep the header actions in their own column instead of allowing the flex row
+   to collapse underneath the horizontally scrolling tool strip. */
+.top-actions{min-width:max-content;flex:none}
+.top-actions .icon-btn{flex:0 0 38px}
+
+@media(max-width:900px){
+  .top-actions #undo,.top-actions #redo{display:block}
+}
+
+@media(max-width:600px){
+  .topbar{grid-template-columns:minmax(0,1fr) max-content;gap:6px;padding-inline:8px}
+  .tool-strip{order:0;width:100%}
+  .top-actions{order:1;gap:3px}
+  .top-actions .icon-btn{width:34px;flex-basis:34px}
+}
+
+/* A short landscape viewport cannot afford a bottom color panel: the panel's
+   minimum height would consume nearly all of the drawing area. Dock it beside
+   the canvas and let the studio itself scroll instead. */
+@media(orientation:landscape) and (max-height:600px){
+  .app{grid-template-columns:minmax(0,1fr) clamp(250px,38vw,320px);grid-template-rows:var(--top) auto minmax(0,1fr)}
+  .topbar{grid-column:1/-1}
+  .option-dock,.stage-shell{grid-column:1}
+  .color-sidebar{grid-column:2;grid-row:2/4;height:auto;border-top:0;border-left:1px solid var(--line);box-shadow:-12px 0 32px rgba(0,0,0,.1)}
+  .color-sidebar .color-studio{padding:12px}
+  .color-sidebar .view-tabs{position:sticky;top:-12px;margin-bottom:10px;padding-top:5px}
+  .color-sidebar .studio-body{grid-template-columns:1fr;gap:12px}
+  .color-sidebar .color-inspector{padding:12px 0 0;border-top:1px solid var(--line);border-left:0}
+  .color-sidebar .color-map-stack{width:min(100%,280px)}
+  .color-sidebar .wheel-map-stack{width:min(100%,210px)}
+  .color-sidebar .color-view canvas{max-height:none}
+  .color-sidebar .studio-palette{grid-template-columns:repeat(8,minmax(20px,1fr))}
+}

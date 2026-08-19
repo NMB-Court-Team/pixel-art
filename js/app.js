@@ -108,7 +108,7 @@
 
   const dom = {
     canvas:$('#canvas'), transform:$('#canvasTransform'), viewport:$('#viewport'), preview:$('#previewLayer'), selection:$('#selectionLayer'),
-    pattern:$('.transparency-pattern'), optionDock:$('#optionDock'), historyList:$('#historyList'), colorDialog:$('#colorDialog'), importDialog:$('#importDialog')
+    pattern:$('.transparency-pattern'), cancelSelection:$('#cancelCanvasSelection'), optionDock:$('#optionDock'), historyList:$('#historyList'), colorDialog:$('#colorDialog'), importDialog:$('#importDialog')
   };
 
   function paletteColor(id){return state.palette.find(c=>c.id===id)?.color||null}
@@ -147,7 +147,7 @@
     dom.canvas.classList.toggle('no-grid',!state.grid);$('#toggleGrid').classList.toggle('active',state.grid);
   }
   function renderSelection(){
-    dom.selection.innerHTML='';const frag=document.createDocumentFragment();
+    dom.selection.innerHTML='';dom.cancelSelection.hidden=!selection.size&&!paste;const frag=document.createDocumentFragment();
     if(paste){for(let y=0;y<paste.h;y++)for(let x=0;x<paste.w;x++){const cell=paste.cells[y][x];if(!cell?.selected)continue;const tx=paste.x+x,ty=paste.y+y;if(tx<0||ty<0||tx>=SIZE||ty>=SIZE)continue;const e=document.createElement('i');e.className='paste-pixel';e.style.left=`${tx*CELL}px`;e.style.top=`${ty*CELL}px`;e.style.backgroundColor=paletteColor(cell.id)||'transparent';frag.append(e)}const b=document.createElement('i');b.className='selection-box';b.style.cssText=`left:${paste.x*CELL}px;top:${paste.y*CELL}px;width:${paste.w*CELL}px;height:${paste.h*CELL}px`;frag.append(b)}
     else if(selection.size){const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),defs=document.createElementNS(ns,'defs'),pattern=document.createElementNS(ns,'pattern'),base=document.createElementNS(ns,'rect'),stripe=document.createElementNS(ns,'path'),shape=document.createElementNS(ns,'path');svg.classList.add('selection-mask');svg.setAttribute('viewBox',`0 0 ${ART_SIZE} ${ART_SIZE}`);svg.setAttribute('aria-hidden','true');pattern.id='selectionStripePattern';pattern.setAttribute('width','6');pattern.setAttribute('height','6');pattern.setAttribute('patternUnits','userSpaceOnUse');base.setAttribute('width','6');base.setAttribute('height','6');base.setAttribute('fill','rgba(237,99,55,.16)');stripe.setAttribute('d','M-1 1L1-1M0 6L6 0M5 7L7 5');stripe.setAttribute('fill','none');stripe.setAttribute('stroke','rgba(255,255,255,.72)');stripe.setAttribute('stroke-width','.85');if(!matchMedia('(prefers-reduced-motion: reduce)').matches){const motion=document.createElementNS(ns,'animateTransform');motion.setAttribute('attributeName','patternTransform');motion.setAttribute('type','translate');motion.setAttribute('from','0 0');motion.setAttribute('to','6 0');motion.setAttribute('dur','.55s');motion.setAttribute('repeatCount','indefinite');pattern.append(motion)}pattern.append(base,stripe);defs.append(pattern);shape.setAttribute('d',[...selection].map(i=>{const x=i%SIZE*CELL,y=Math.floor(i/SIZE)*CELL;return `M${x} ${y}h${CELL}v${CELL}h-${CELL}z`}).join(''));shape.setAttribute('fill','url(#selectionStripePattern)');svg.append(defs,shape);frag.append(svg)}
     dom.selection.append(frag);
@@ -328,6 +328,7 @@
   async function copyProjectData(){const textarea=$('#projectData'),text=textarea.value;try{if(window.isSecureContext&&navigator.clipboard?.writeText){await navigator.clipboard.writeText(text);toast('项目数据已复制');return}}catch(error){console.warn('[Pixel Atelier] Clipboard API 不可用，尝试兼容复制',error)}textarea.focus();textarea.select();try{if(document.execCommand?.('copy')){toast('项目数据已复制');return}}catch(error){console.warn('[Pixel Atelier] 兼容复制失败',error)}toast('自动复制不可用，内容已全选，请手动复制')}
 
   function bindEvents(){
+    dom.cancelSelection.addEventListener('pointerdown',e=>e.stopPropagation());
     dom.viewport.addEventListener('contextmenu',e=>{e.preventDefault();suppressCanvasMenu=false});dom.viewport.addEventListener('pointerdown',pointerDown);dom.viewport.addEventListener('pointermove',pointerMove);dom.viewport.addEventListener('pointerup',pointerUp);dom.viewport.addEventListener('pointercancel',pointerUp);
     dom.viewport.addEventListener('wheel',e=>{e.preventDefault();setZoom(zoom+(e.deltaY<0?.1:-.1),e.clientX,e.clientY)},{passive:false});
     const activateToolButton=btn=>{if(btn.dataset.tool){const panelWasOpen=activePanel===btn.dataset.panel,toolWasActive=state.tool===btn.dataset.tool;setTool(btn.dataset.tool);if(btn.dataset.panel&&(!panelWasOpen||toolWasActive))openPanel(btn.dataset.panel)}else if(btn.dataset.action==='symmetry'){if(state.symmetry!=='none'&&activePanel==='symmetryPanel'){beginAction('关闭对称');state.symmetry='none';commitAction();openPanel('symmetryPanel')}else openPanel('symmetryPanel')}else openPanel(btn.dataset.panel)};
