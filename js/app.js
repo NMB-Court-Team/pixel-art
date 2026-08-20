@@ -10,6 +10,7 @@
   const DEFAULT_MIN_DELTA_E = 12;
   const DEFAULT_COLOR = '#777777';
   const STORAGE_KEY = 'pixelAtelier:state:v2';
+  const APP_VERSION = '2.1.0';
   const DEFAULT_COLORS = [];
 
   const $ = (selector, root = document) => root.querySelector(selector);
@@ -364,7 +365,7 @@
     let resizeFrame=null;const preserveViewOnResize=()=>{cancelAnimationFrame(resizeFrame);resizeFrame=requestAnimationFrame(()=>{const r=dom.viewport.getBoundingClientRect();if(r.width>0&&r.height>0)applyTransform()})};if('ResizeObserver'in window)new ResizeObserver(preserveViewOnResize).observe(dom.viewport);else window.addEventListener('resize',preserveViewOnResize);document.addEventListener('visibilitychange',()=>{if(document.hidden)saveLocal()});
   }
 
-  function init(){bootLog('init:start');buildCanvas();bootLog('canvas:built',{pixels:dom.canvas.children.length});bindEvents();bootLog('events:bound');loadLocal();renderAll();bootLog('ui:rendered',{colors:state.palette.length});setCandidate(paletteColor(state.currentId)||DEFAULT_COLOR,'selection');requestAnimationFrame(()=>requestAnimationFrame(()=>{resetView();const r=dom.viewport.getBoundingClientRect();bootLog('init:ready',{zoom:Math.round(zoom*100),viewport:{width:Math.round(r.width),height:Math.round(r.height)}})}))}
+  function init(){bootLog('init:start');$('#appVersion').textContent='v'+APP_VERSION;buildCanvas();bootLog('canvas:built',{pixels:dom.canvas.children.length});bindEvents();bootLog('events:bound');loadLocal();renderAll();bootLog('ui:rendered',{colors:state.palette.length});setCandidate(paletteColor(state.currentId)||DEFAULT_COLOR,'selection');requestAnimationFrame(()=>requestAnimationFrame(()=>{resetView();const r=dom.viewport.getBoundingClientRect();bootLog('init:ready',{zoom:Math.round(zoom*100),viewport:{width:Math.round(r.width),height:Math.round(r.height)}})}))}
   function showStartupError(error){console.error('Pixel Atelier failed to initialize',error);bootLog('init:failed',{name:error.name,message:error.message,stack:error.stack});const notice=document.createElement('div');notice.className='startup-error';const title=document.createElement('b'),summary=document.createElement('span'),details=document.createElement('pre');title.textContent='编辑器加载失败';summary.textContent=`${error.name}: ${error.message}`;details.textContent=bootEntries.map(entry=>`+${entry.ms}ms  ${entry.stage}${entry.details?.message?` — ${entry.details.message}`:''}`).join('\n');notice.append(title,summary,details);document.body.append(notice)}
   window.addEventListener('unhandledrejection',event=>{console.error('[Pixel Atelier] 未处理的异步错误',event.reason)});
   try{init()}catch(error){showStartupError(error)}
