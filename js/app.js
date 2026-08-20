@@ -365,7 +365,25 @@
     let resizeFrame=null;const preserveViewOnResize=()=>{cancelAnimationFrame(resizeFrame);resizeFrame=requestAnimationFrame(()=>{const r=dom.viewport.getBoundingClientRect();if(r.width>0&&r.height>0)applyTransform()})};if('ResizeObserver'in window)new ResizeObserver(preserveViewOnResize).observe(dom.viewport);else window.addEventListener('resize',preserveViewOnResize);document.addEventListener('visibilitychange',()=>{if(document.hidden)saveLocal()});
   }
 
-  function init(){bootLog('init:start');$('#appVersion').textContent='v'+APP_VERSION;buildCanvas();bootLog('canvas:built',{pixels:dom.canvas.children.length});bindEvents();bootLog('events:bound');loadLocal();renderAll();bootLog('ui:rendered',{colors:state.palette.length});setCandidate(paletteColor(state.currentId)||DEFAULT_COLOR,'selection');requestAnimationFrame(()=>requestAnimationFrame(()=>{resetView();const r=dom.viewport.getBoundingClientRect();bootLog('init:ready',{zoom:Math.round(zoom*100),viewport:{width:Math.round(r.width),height:Math.round(r.height)}})}))}
+  function initSidebarResize(){
+    const sidebar=dom.colorDialog,handle=document.createElement('div');handle.className='resize-handle';handle.setAttribute('aria-hidden','true');sidebar.append(handle);
+    const appEl=$('.app'),UI_KEY='pixelAtelier:ui:v1';let prefs={};try{prefs=JSON.parse(localStorage.getItem(UI_KEY)||'{}')}catch(error){prefs={}}
+    const clampSidebarW=w=>{const maxW=Math.min(520,Math.floor(appEl.getBoundingClientRect().width*.6));return clamp(Math.round(w),300,maxW)};
+    const clampSidebarH=h=>{const maxH=Math.min(480,Math.floor(appEl.getBoundingClientRect().height*.65));return clamp(Math.round(h),200,maxH)};
+    const applyWidth=w=>{prefs.sidebarW=clampSidebarW(w);appEl.style.setProperty('--sidebar-w',`${prefs.sidebarW}px`)};
+    const applyHeight=h=>{prefs.sidebarH=clampSidebarH(h);sidebar.style.setProperty('--sidebar-h',`${prefs.sidebarH}px`)};
+    if(prefs.sidebarW)applyWidth(prefs.sidebarW);if(prefs.sidebarH)applyHeight(prefs.sidebarH);
+    const savePrefs=()=>{try{localStorage.setItem(UI_KEY,JSON.stringify(prefs))}catch(error){console.warn('[Pixel Atelier] 界面尺寸保存失败',error)}};
+    const mode=()=>{if(matchMedia('(orientation:landscape) and (max-height:600px)').matches)return'wide';return matchMedia('(max-width:980px),(max-aspect-ratio:6/5)').matches?'bottom':'wide'};
+    let drag=null;
+    handle.addEventListener('pointerdown',e=>{if(e.button!==0)return;drag={pointerId:e.pointerId,mode:mode()};handle.setPointerCapture?.(e.pointerId);handle.classList.add('dragging');e.preventDefault()});
+    handle.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.pointerId)return;const r=appEl.getBoundingClientRect();if(drag.mode==='wide')applyWidth(r.right-e.clientX);else applyHeight(r.bottom-e.clientY)});
+    const end=e=>{if(!drag||e.pointerId!==drag.pointerId)return;drag=null;handle.classList.remove('dragging');savePrefs()};
+    handle.addEventListener('pointerup',end);handle.addEventListener('pointercancel',end);
+    handle.addEventListener('dblclick',()=>{delete prefs.sidebarW;delete prefs.sidebarH;appEl.style.removeProperty('--sidebar-w');sidebar.style.removeProperty('--sidebar-h');savePrefs()});
+  }
+
+  function init(){bootLog('init:start');$('#appVersion').textContent='v'+APP_VERSION;initSidebarResize();buildCanvas();bootLog('canvas:built',{pixels:dom.canvas.children.length});bindEvents();bootLog('events:bound');loadLocal();renderAll();bootLog('ui:rendered',{colors:state.palette.length});setCandidate(paletteColor(state.currentId)||DEFAULT_COLOR,'selection');requestAnimationFrame(()=>requestAnimationFrame(()=>{resetView();const r=dom.viewport.getBoundingClientRect();bootLog('init:ready',{zoom:Math.round(zoom*100),viewport:{width:Math.round(r.width),height:Math.round(r.height)}})}))}
   function showStartupError(error){console.error('Pixel Atelier failed to initialize',error);bootLog('init:failed',{name:error.name,message:error.message,stack:error.stack});const notice=document.createElement('div');notice.className='startup-error';const title=document.createElement('b'),summary=document.createElement('span'),details=document.createElement('pre');title.textContent='编辑器加载失败';summary.textContent=`${error.name}: ${error.message}`;details.textContent=bootEntries.map(entry=>`+${entry.ms}ms  ${entry.stage}${entry.details?.message?` — ${entry.details.message}`:''}`).join('\n');notice.append(title,summary,details);document.body.append(notice)}
   window.addEventListener('unhandledrejection',event=>{console.error('[Pixel Atelier] 未处理的异步错误',event.reason)});
   try{init()}catch(error){showStartupError(error)}
