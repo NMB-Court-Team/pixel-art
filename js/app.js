@@ -10,7 +10,7 @@
   const DEFAULT_MIN_DELTA_E = 12;
   const DEFAULT_COLOR = '#777777';
   const STORAGE_KEY = 'pixelAtelier:state:v2';
-  const APP_VERSION = '2.2.0';
+  const APP_VERSION = '2.3.0';
   const DEFAULT_COLORS = [];
 
   const $ = (selector, root = document) => root.querySelector(selector);
@@ -109,7 +109,7 @@
 
   const dom = {
     canvas:$('#canvas'), transform:$('#canvasTransform'), viewport:$('#viewport'), preview:$('#previewLayer'), selection:$('#selectionLayer'),
-    pattern:$('.transparency-pattern'), cancelSelection:$('#cancelCanvasSelection'), optionDock:$('#optionDock'), historyList:$('#historyList'), colorDialog:$('#colorDialog'), importDialog:$('#importDialog')
+    pattern:$('.transparency-pattern'), cancelSelection:$('#cancelCanvasSelection'), optionDock:$('#optionDock'), historyList:$('#historyList'), colorDialog:$('#colorDialog'), importDialog:$('#importDialog'), configDialog:$('#configDialog')
   };
 
   function paletteColor(id){return state.palette.find(c=>c.id===id)?.color||null}
@@ -326,6 +326,119 @@
   function openData(mode){$('#projectData').value=mode==='export'?projectJson():'';$('#applyProjectData').style.display=mode==='export'?'none':'';$('#copyProjectData').style.display=mode==='export'?'':'none';$('#dataDialog').showModal()}
   function applyProjectData(){try{const data=JSON.parse($('#projectData').value);if(data.format!=='pixel-atelier'||data.version!==2||data.size!==SIZE||!Array.isArray(data.pixels)||data.pixels.length!==SIZE*SIZE||!Array.isArray(data.palette)||data.palette.length>16)throw new Error('项目格式、版本或尺寸不正确');const ids=new Set(),palette=data.palette.map((entry,i)=>{if(!entry||!['string','number'].includes(typeof entry.id))throw new Error(`调色板第 ${i+1} 项缺少有效 ID`);const id=String(entry.id);if(!id||ids.has(id))throw new Error(`调色板第 ${i+1} 项 ID 重复或为空`);const rgb=typeof entry.color==='string'?hexToRgb(entry.color):null;if(!rgb)throw new Error(`调色板第 ${i+1} 项颜色无效`);ids.add(id);return {id,color:rgbToHex(rgb.r,rgb.g,rgb.b)}}),pixels=data.pixels.map((id,i)=>{if(id===null)return null;const normalized=String(id);if(!ids.has(normalized))throw new Error(`第 ${i+1} 个像素引用了不存在的颜色`);return normalized}),minDeltaE=Number.isFinite(+data.minDeltaE)&&+data.minDeltaE>=MIN_DELTA_E?+data.minDeltaE:DEFAULT_MIN_DELTA_E;beginAction('导入项目数据');state.palette=palette;state.pixels=pixels;lastPenEnd=null;sortPalettePerceptually();state.currentId=state.palette[0]?.id||null;state.minDeltaE=minDeltaE;selection.clear();commitAction();renderAll();syncColorEditorSelection();$('#dataDialog').close();toast('项目导入成功')}catch(e){toast(e instanceof Error?e.message:'项目数据无效')}}
 
+  // ---------------- 从配置导入（pngs2yml.py 生成的 floor_patterns 配置片段） ----------------
+  let configState=null,configPreviewTimer=null;
+  function yamlQuoteClosed(value){
+    const s=value.trim();
+    if(s.length>=2&&(s[0]==='"'||s[0]==="'"))return s.endsWith(s[0]);
+    return true;
+  }
+  function unquoteYamlValue(value){
+    const s=value.trim();
+    if(s.length>=2&&s[0]==='"'&&s.endsWith('"'))return s.slice(1,-1).replace(/\\"/g,'"').replace(/\\\\/g,'\\');
+    if(s.length>=2&&s[0]==="'"&&s.endsWith("'"))return s.slice(1,-1).replace(/''/g,"'");
+    return s;
+  }
+  function parseFloorPatternConfig(text){
+    if(typeof text!=='string'||!text.trim())throw new Error('内容为空，请先粘贴配置');
+    const lines=text.split(/\r?\n/),items=[];let current=null;
+    const finishItem=()=>{if(current&&(current.keys.has('colors')||current.keys.has('pattern')))items.push(current);current=null};
+    const keyMatch=line=>/^([A-Za-z_][A-Za-z0-9_-]*)\s*:\s*(.*)$/.exec(line);
+    for(const line of lines){
+      const t=line.trim();
+      if(!t||t.startsWith('#'))continue;
+      if(/^-\s+/.test(t)){
+        finishItem();current={keys:new Map()};
+        const rest=t.replace(/^-\s+/,''),rm=keyMatch(rest);
+        if(rm)current.keys.set(rm[1],rm[2].trim());
+        continue;
+      }
+      if(!current)current={keys:new Map()};
+      const m=keyMatch(t);
+      if(m){current.keys.set(m[1],m[2].trim());continue}
+      const pat=current.keys.get('pattern');
+      if(typeof pat==='string'&&!yamlQuoteClosed(pat))current.keys.set('pattern',pat+'\n'+t);
+    }
+    finishItem();
+    if(!items.length)throw new Error('没有找到配置项（需要 colors 与 pattern 字段）');
+    return items.map(raw=>{
+      const colorsRaw=raw.keys.get('colors');
+      if(colorsRaw===undefined||colorsRaw==='')throw new Error('缺少 colors 字段');
+      const colors=[];
+      for(const m of colorsRaw.matchAll(/#[0-9a-fA-F]{6}/g))colors.push(m[0].toLowerCase());
+      if(!colors.length)throw new Error('colors 中没有有效的 HEX 颜色（例如 "#f3cc25"）');
+      let pattern=raw.keys.get('pattern');
+      if(pattern===undefined)throw new Error('缺少 pattern 字段');
+      pattern=unquoteYamlValue(pattern).replace(/\s+/g,'');
+      if(!/^[_0-9a-zA-Z]+$/.test(pattern))throw new Error('pattern 包含不支持的字符（只允许 _、数字 0-9、字母 a-z）');
+      return {name:unquoteYamlValue(raw.keys.get('name')||''),colors,pattern};
+    });
+  }
+  function decodeFloorPattern(item){
+    const colors=item.colors;
+    if(colors.length>16)throw new Error(`颜色数量 ${colors.length} 超过调色板上限 16`);
+    const p=item.pattern,rows=[];let offset=0;
+    if(p.length===SIZE*SIZE){for(let y=0;y<SIZE;y++){rows.push(p.slice(offset,offset+SIZE));offset+=SIZE}}
+    else if(p.length===SIZE*SIZE+SIZE-1){
+      for(let y=0;y<SIZE;y++){
+        if(y<SIZE-1&&p[offset+SIZE]!=='_')throw new Error(`pattern 第 ${y+1} 行与下一行之间缺少 '_' 分隔符`);
+        rows.push(p.slice(offset,offset+SIZE));offset+=SIZE+1;
+      }
+    }else throw new Error(`pattern 长度应为 ${SIZE*SIZE}（无分隔符）或 ${SIZE*SIZE+SIZE-1}（行间 '_' 分隔），实际为 ${p.length}`);
+    const palette=colors.map(color=>({id:uid(),color})),pixels=Array(SIZE*SIZE).fill(null);
+    for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++){
+      const ch=rows[y][x];
+      if(ch==='_')continue;
+      let idx;
+      if(ch>='1'&&ch<='9')idx=ch.charCodeAt(0)-49;
+      else if(ch>='a'&&ch<='z')idx=ch.charCodeAt(0)-97+9;
+      else if(ch>='A'&&ch<='Z')idx=ch.charCodeAt(0)-65+9;
+      else throw new Error(`pattern 包含无效字符 '${ch}'`);
+      if(idx>=colors.length)throw new Error(`pattern 字符 '${ch}' 引用了不存在的颜色（colors 只有 ${colors.length} 个）`);
+      pixels[indexOf(x,y)]=palette[idx].id;
+    }
+    return {name:item.name,colors,palette,pixels,opaque:pixels.filter(Boolean).length};
+  }
+  function drawConfigPreview(item){
+    const c=$('#configPreview');if(!c)return;const ctx=c.getContext('2d'),scale=c.width/SIZE;ctx.clearRect(0,0,c.width,c.height);
+    if(!item)return;
+    const colors=new Map(item.palette.map(entry=>[entry.id,entry.color]));
+    item.pixels.forEach((id,i)=>{if(!id)return;ctx.fillStyle=colors.get(id);ctx.fillRect(i%SIZE*scale,Math.floor(i/SIZE)*scale,scale,scale)});
+  }
+  function updateConfigImport(){
+    clearTimeout(configPreviewTimer);
+    configPreviewTimer=setTimeout(()=>{
+      const status=$('#configStatus'),errBox=$('#configError'),confirm=$('#confirmConfigImport');
+      let previewItem=null;
+      try{
+        const items=parseFloorPatternConfig($('#configText').value);
+        if(!items.length)throw new Error('没有找到配置项');
+        configState={items};previewItem=decodeFloorPattern(items[0]);
+        confirm.disabled=false;errBox.hidden=true;status.textContent=`可导入：${previewItem.name?`「${previewItem.name}」 · `:''}${previewItem.palette.length} 色 · ${previewItem.opaque} 不透明像素${items.length>1?` · 共 ${items.length} 个图案，将导入第 1 个`:''}`;
+      }catch(error){
+        configState=null;confirm.disabled=true;errBox.hidden=false;errBox.textContent=error instanceof Error?error.message:String(error);status.textContent='';
+      }
+      drawConfigPreview(previewItem);
+    },160);
+  }
+  function openConfigImport(){
+    configState=null;$('#configText').value='';$('#configError').hidden=true;$('#configStatus').textContent='粘贴 floor_patterns 配置后自动预览';$('#confirmConfigImport').disabled=true;drawConfigPreview(null);dom.configDialog.showModal();requestAnimationFrame(()=>$('#configText').focus());
+  }
+  function confirmConfigImport(){
+    if(!configState?.items?.length)return;
+    try{
+      const item=decodeFloorPattern(configState.items[0]);
+      const closePairs=[];
+      for(let i=0;i<item.colors.length;i++)for(let j=i+1;j<item.colors.length;j++){
+        const d=deltaE00(colorLab(item.colors[i]),colorLab(item.colors[j]));
+        if(d<state.minDeltaE)closePairs.push(`${item.colors[i]} 与 ${item.colors[j]}（色差 ${d.toFixed(2)}）`);
+      }
+      beginAction('从配置导入');state.palette=item.palette;state.pixels=item.pixels;lastPenEnd=null;sortPalettePerceptually();state.currentId=state.palette[0]?.id||null;selection.clear();commitAction();renderAll();syncColorEditorSelection();dom.configDialog.close();
+      toast(`已导入配置${item.name?`「${item.name}」`:''}：${item.palette.length} 色 · ${item.opaque} 不透明像素${closePairs.length?`；注意：${closePairs.join('、')} 低于当前最小色差 ${state.minDeltaE}`:''}`);
+    }catch(error){toast(error instanceof Error?error.message:'配置无效，请检查格式')}
+  }
+
+
   async function copyProjectData(){const textarea=$('#projectData'),text=textarea.value;try{if(window.isSecureContext&&navigator.clipboard?.writeText){await navigator.clipboard.writeText(text);toast('项目数据已复制');return}}catch(error){console.warn('[Pixel Atelier] Clipboard API 不可用，尝试兼容复制',error)}textarea.focus();textarea.select();try{if(document.execCommand?.('copy')){toast('项目数据已复制');return}}catch(error){console.warn('[Pixel Atelier] 兼容复制失败',error)}toast('自动复制不可用，内容已全选，请手动复制')}
 
   function bindEvents(){
@@ -345,7 +458,7 @@
     $('#toggleGrid').onclick=()=>{beginAction(state.grid?'隐藏网格':'显示网格');state.grid=!state.grid;commitAction();renderCanvas()};
     $('#clearCanvas').onclick=()=>{if(confirm('确定清空整个画布吗？')){beginAction('清空画布');state.pixels.fill(null);selection.clear();lastPenEnd=null;commitAction();renderAll()}};
     $('#themeToggle').onclick=()=>{document.body.classList.toggle('dark-theme');$('#themeToggle').textContent=document.body.classList.contains('dark-theme')?'☼':'☾'};
-    $('#importImage').onclick=openImagePicker;$('#importImageFile').onchange=e=>loadImportImage(e.target.files[0]);$('#exportPng').onclick=exportPng;$('#exportData').onclick=()=>openData('export');$('#importData').onclick=()=>openData('import');$('#copyProjectData').onclick=copyProjectData;$('#applyProjectData').onclick=applyProjectData;dom.importDialog.addEventListener('close',cleanupImport);
+    $('#importImage').onclick=openImagePicker;$('#importImageFile').onchange=e=>loadImportImage(e.target.files[0]);$('#exportPng').onclick=exportPng;$('#exportData').onclick=()=>openData('export');$('#importData').onclick=()=>openData('import');$('#copyProjectData').onclick=copyProjectData;$('#applyProjectData').onclick=applyProjectData;$('#importConfig').onclick=openConfigImport;$('#configText').oninput=updateConfigImport;$('#confirmConfigImport').onclick=confirmConfigImport;dom.importDialog.addEventListener('close',cleanupImport);
     $$('.view-tabs button').forEach(btn=>btn.onclick=()=>{colorView=btn.dataset.colorView;$$('.view-tabs button').forEach(b=>b.classList.toggle('active',b===btn));$$('.color-view').forEach(v=>v.classList.toggle('active',v.id===`${colorView}View`));if(colorView==='lab')drawLabView();if(colorView==='wheel')drawWheelView()});
     const requestAddCandidate=()=>{if(state.palette.length>=16){toast('超过颜色数量上限（最多 16 色）');return false}const check=validCandidate(candidate,null);if(!check.valid){toast(`与已有颜色过近，至少需要 色差 ${state.minDeltaE}`);return false}return applyCandidate('add')};$('#updateSelectedColor').onclick=()=>applyCandidate('update');$('#deleteSelectedColor').onclick=()=>{if(editingId)deleteColor(editingId)};$('#clearPalette').onclick=clearPalette;$('#addCandidateColor').onclick=requestAddCandidate;$('#nativePicker').onclick=()=>$('#nativeColor').click();$('#nativeColor').oninput=e=>setCandidate(e.target.value);$('#hexInput').onchange=e=>{let v=e.target.value;if(!v.startsWith('#'))v='#'+v;if(hexToRgb(v))setCandidate(v);else toast('请输入六位 HEX 颜色')};
     const minDeltaInputs=[$('#minDeltaE'),$('#importMinDeltaE')],minDeltaDraftValid=input=>{const value=+input.value,valid=Number.isFinite(value)&&value>=MIN_DELTA_E;input.classList.toggle('invalid',!valid);return valid},syncMinDeltaInputs=()=>minDeltaInputs.forEach(input=>{if(document.activeElement!==input){input.value=state.minDeltaE;input.classList.remove('invalid')}}),commitMinDeltaE=input=>{if(!minDeltaDraftValid(input)){toast(`最小 色差 不能低于内置值 ${MIN_DELTA_E}`);setTimeout(()=>{input.value=state.minDeltaE;input.classList.remove('invalid')},450);return}const value=Math.round(+input.value*10)/10;if(value===state.minDeltaE){syncMinDeltaInputs();return}const refreshPreview=!!importState?.preview;beginAction('调整颜色最小距离');state.minDeltaE=value;commitAction();if(importState)importState.result=null;renderPalette();setCandidate(candidate);syncMinDeltaInputs();if(importState)syncImportControls();if(refreshPreview)refreshImportPreview();toast(`最小 色差 已调整为 ${value}`)};minDeltaInputs.forEach(input=>{input.oninput=()=>minDeltaDraftValid(input);input.onchange=()=>commitMinDeltaE(input);input.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();commitMinDeltaE(input);input.blur()}}});
