@@ -7,7 +7,7 @@
   <meta name="description" content="支持感知色差调色板的 48×48 像素画编辑器">
   <title>Pixel Atelier · 像素画工作台</title>
   <link rel="icon" href="assets/icon.png" type="image/png">
-  <link rel="stylesheet" href="css/global.css?v=20260905-1">
+  <link rel="stylesheet" href="css/global.css?v=20260905-2">
   <style>.topbar{grid-template-columns:minmax(0,1fr) auto}.stage-head{justify-content:flex-end}@media(max-width:900px){.topbar{grid-template-columns:minmax(0,1fr) auto}}@media(max-width:600px){.stage-head>div:first-child{display:flex}}</style>
 </head>
 <body class="dark-theme">
@@ -99,7 +99,7 @@
           <div id="candidatePreview" class="candidate-preview"><span style="background:#777777"></span><div><small>候选颜色</small><b>#777777</b></div></div>
           <div id="colorValidation" class="validation ok">可添加到调色板</div>
           <div class="color-actions"><button id="updateSelectedColor" type="button" class="accent" title="也可在色图上按 Alt 单击">更新选中颜色</button><button id="deleteSelectedColor" type="button" class="danger" disabled>删除选中颜色</button><button id="addCandidateColor" type="button" class="quiet add-color-action" title="也可在色图上按 Shift 单击">添加新颜色到调色板</button></div>
-          <h3>调色板 <span id="studioPaletteCount">0 / 16</span><button id="clearPalette" type="button" class="danger palette-clear" disabled>清空</button></h3><label class="delta-rule-control">最小色差 <input id="minDeltaE" type="number" min="8" step="0.1" value="12" inputmode="decimal"><small>内置下限 8</small></label><div id="studioPalette" class="studio-palette" aria-label="颜色列表"></div>
+          <h3>调色板 <span id="studioPaletteCount">0 / 16</span><button id="clearPalette" type="button" class="danger palette-clear" disabled>清空</button></h3><label class="delta-rule-control">最小色差 <input id="minDeltaE" type="number" min="8" step="0.1" value="12" inputmode="decimal"><small>内置下限 8</small></label><label class="color-limit-control">颜色上限 <input id="maxColors" type="number" min="1" max="16" step="1" value="16" inputmode="numeric"><small>1–16 · 不能低于现有颜色数</small></label><div id="studioPalette" class="studio-palette" aria-label="颜色列表"></div>
           <p class="studio-tip">拖动色图只预览；Shift + 单击添加新颜色，Alt + 单击更新选中颜色。调色板颜色可点击编辑、长按或拖动排序，颜色之间色差至少 <span id="paletteDeltaRule">12</span>。</p>
         </section>
       </div>
@@ -112,7 +112,7 @@
   <form method="dialog" class="dialog-frame import-studio">
     <header><div><span class="eyebrow">IMAGE QUANTIZATION</span><h2>定位并转换图片</h2></div><button class="close-btn" value="close">×</button></header>
     <div class="import-layout"><div class="import-preview-wrap"><canvas id="importPreview" width="450" height="450"></canvas><p id="importPreviewHint">拖动图片调整位置，滚轮或滑块缩放</p></div>
-      <aside><label>缩放 <input id="importScale" type="range" min="10" max="500" value="100"><output>100%</output></label><button id="fitImport" type="button" class="quiet wide">适应画布</button><button id="toggleImportPreview" type="button" class="quiet wide" aria-pressed="false">开启预览</button><label class="import-min-delta">颜色最小色差 <input id="importMinDeltaE" type="number" min="8" step="0.1" value="12" inputmode="decimal"><small>与工作台同步</small></label><label class="import-algorithm-select">处理方法 <select id="importAlgorithm"><option value="none">无偏差</option><option value="shift">颜色偏移恢复</option><option value="contrast">增强对比度</option><option value="balanced">区域感知均衡</option></select></label><label class="import-algorithm-option" data-algorithms="shift balanced" hidden>允许偏移色差 <input id="importColorOffset" type="range" min="0" max="20" step="0.5" value="8"><output>8</output></label><label class="import-algorithm-option" data-algorithms="contrast balanced" hidden>目标邻接色差 <input id="importContrastTarget" type="range" min="8" max="30" step="0.5" value="12"><output>12</output></label><label class="import-algorithm-option" data-algorithms="contrast balanced" hidden>对比增强强度 <input id="importContrastStrength" type="range" min="0" max="100" step="5" value="65"><output>65%</output></label><label class="import-algorithm-option" data-algorithms="contrast balanced" hidden>区域识别阈值 <input id="importRegionThreshold" type="range" min="0.5" max="12" step="0.5" value="3"><output>3</output></label><div id="importAlgorithmNote" class="import-note">使用感知色差量化，不主动移动颜色或改变区域关系。</div><button id="confirmImport" type="button" class="accent wide">生成像素画</button></aside>
+      <aside><label>缩放 <input id="importScale" type="range" min="10" max="500" value="100"><output>100%</output></label><button id="fitImport" type="button" class="quiet wide">适应画布</button><button id="toggleImportPreview" type="button" class="quiet wide" aria-pressed="false">开启预览</button><label class="import-min-delta">颜色最小色差 <input id="importMinDeltaE" type="number" min="8" step="0.1" value="12" inputmode="decimal"><small>与工作台同步</small></label><label class="import-max-colors">颜色数量上限 <input id="importMaxColors" type="number" min="1" max="16" step="1" value="16" inputmode="numeric"><small>与工作台同步</small></label><label class="import-algorithm-select">处理方法 <select id="importAlgorithm"><option value="none">无偏差</option><option value="shift">颜色偏移恢复</option><option value="contrast">增强对比度</option><option value="balanced">区域感知均衡</option></select></label><label class="import-algorithm-option" data-algorithms="shift balanced" hidden>允许偏移色差 <input id="importColorOffset" type="range" min="0" max="20" step="0.5" value="8"><output>8</output></label><label class="import-algorithm-option" data-algorithms="contrast balanced" hidden>目标邻接色差 <input id="importContrastTarget" type="range" min="8" max="30" step="0.5" value="12"><output>12</output></label><label class="import-algorithm-option" data-algorithms="contrast balanced" hidden>对比增强强度 <input id="importContrastStrength" type="range" min="0" max="100" step="5" value="65"><output>65%</output></label><label class="import-algorithm-option" data-algorithms="contrast balanced" hidden>区域识别阈值 <input id="importRegionThreshold" type="range" min="0.5" max="12" step="0.5" value="3"><output>3</output></label><div id="importAlgorithmNote" class="import-note">使用感知色差量化，不主动移动颜色或改变区域关系。</div><button id="confirmImport" type="button" class="accent wide">生成像素画</button></aside>
     </div>
   </form>
 </dialog>
@@ -121,6 +121,6 @@
 
 <dialog id="dataDialog" class="studio-dialog"><form method="dialog" class="dialog-frame data-dialog"><header><h2>项目数据</h2><button class="close-btn" value="close">×</button></header><textarea id="projectData" spellcheck="false"></textarea><div class="dialog-actions"><button id="copyProjectData" type="button">复制</button><button id="applyProjectData" type="button" class="accent">导入</button></div></form></dialog>
 
-<script src="js/app.js?v=20260905-1"></script>
+<script src="js/app.js?v=20260905-2"></script>
 </body>
 </html>
