@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const SIZE = 45;
+  const SIZE = 48;
   const CELL = 16;
   const ART_SIZE = SIZE * CELL;
   const MIN_ZOOM = .2;
@@ -9,8 +9,8 @@
   const MIN_DELTA_E = 8;
   const DEFAULT_MIN_DELTA_E = 12;
   const DEFAULT_COLOR = '#777777';
-  const STORAGE_KEY = 'pixelAtelier:state:v2';
-  const APP_VERSION = '2.3.0';
+  const STORAGE_KEY = 'pixelAtelier:state:v3';
+  const APP_VERSION = '2.4.0';
   const DEFAULT_COLORS = [];
 
   const $ = (selector, root = document) => root.querySelector(selector);
@@ -137,9 +137,10 @@
   function toast(text){const t=document.createElement('div');t.className='toast';t.textContent=text;document.body.append(t);requestAnimationFrame(()=>t.classList.add('show'));setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),220)},1900)}
 
   function buildCanvas(){
-    const frag=document.createDocumentFragment();
+    const frag=document.createDocumentFragment(),half=SIZE/2;
     for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++){const p=document.createElement('div');p.className='pixel';p.dataset.x=x;p.dataset.y=y;
-      if(x===22)p.classList.add('center-left','center-right');if(y===22)p.classList.add('center-top','center-bottom');frag.append(p)}
+      if(x===half-1)p.classList.add('center-right');if(x===half)p.classList.add('center-left');
+      if(y===half-1)p.classList.add('center-bottom');if(y===half)p.classList.add('center-top');frag.append(p)}
     dom.canvas.append(frag);
   }
   function renderCanvas(){
@@ -272,7 +273,7 @@
 
   function cleanupImport(){if(importState?.url)URL.revokeObjectURL(importState.url);importState=null}
   const IMPORT_ALGORITHM_NOTES={none:'使用感知色差量化，不主动移动颜色或改变区域关系。',shift:'利用剩余色位，在允许偏移内恢复差距最大的被合并颜色。',contrast:'固定量化调色板，通过区域邻接图重新分配颜色，优先拉开接触区域。',balanced:'先用偏移恢复颜色，再通过区域邻接图兼顾原色准确度与边界区分。'};
-  function syncImportControls(){if(!importState)return;const preview=$('#toggleImportPreview'),importDelta=$('#importMinDeltaE');preview.textContent=importState.preview?'关闭预览':'开启预览';preview.classList.toggle('active',importState.preview);preview.setAttribute('aria-pressed',String(importState.preview));if(document.activeElement!==importDelta){importDelta.value=state.minDeltaE;importDelta.classList.remove('invalid')}$('#importAlgorithm').value=importState.algorithm;$$('.import-algorithm-option').forEach(label=>label.hidden=!label.dataset.algorithms.split(' ').includes(importState.algorithm));[['importColorOffset',importState.maxOffset,''],['importContrastTarget',importState.contrastTarget,''],['importContrastStrength',importState.contrastStrength,'%'],['importRegionThreshold',importState.regionThreshold,'']].forEach(([id,value,suffix])=>{const input=$('#'+id);input.value=value;input.nextElementSibling.textContent=Number(value).toFixed(value%1?1:0)+suffix});$('#importAlgorithmNote').textContent=IMPORT_ALGORITHM_NOTES[importState.algorithm];const result=importState.result,stats=result?.spatialStats,details=result?` · ${result.palette.length} 色${result.recoveredCount?` · 偏移恢复 ${result.recoveredCount}`:''}${stats?.reassignedRegions?` · 调整 ${stats.reassignedRegions} 区域`:''}`:'';$('#importPreviewHint').textContent=importState.preview?`最终 45×45 量化预览${details}`:'拖动图片调整位置，滚轮或滑块缩放'}
+  function syncImportControls(){if(!importState)return;const preview=$('#toggleImportPreview'),importDelta=$('#importMinDeltaE');preview.textContent=importState.preview?'关闭预览':'开启预览';preview.classList.toggle('active',importState.preview);preview.setAttribute('aria-pressed',String(importState.preview));if(document.activeElement!==importDelta){importDelta.value=state.minDeltaE;importDelta.classList.remove('invalid')}$('#importAlgorithm').value=importState.algorithm;$$('.import-algorithm-option').forEach(label=>label.hidden=!label.dataset.algorithms.split(' ').includes(importState.algorithm));[['importColorOffset',importState.maxOffset,''],['importContrastTarget',importState.contrastTarget,''],['importContrastStrength',importState.contrastStrength,'%'],['importRegionThreshold',importState.regionThreshold,'']].forEach(([id,value,suffix])=>{const input=$('#'+id);input.value=value;input.nextElementSibling.textContent=Number(value).toFixed(value%1?1:0)+suffix});$('#importAlgorithmNote').textContent=IMPORT_ALGORITHM_NOTES[importState.algorithm];const result=importState.result,stats=result?.spatialStats,details=result?` · ${result.palette.length} 色${result.recoveredCount?` · 偏移恢复 ${result.recoveredCount}`:''}${stats?.reassignedRegions?` · 调整 ${stats.reassignedRegions} 区域`:''}`:'';$('#importPreviewHint').textContent=importState.preview?`最终 ${SIZE}×${SIZE} 量化预览${details}`:'拖动图片调整位置，滚轮或滑块缩放'}
   function openImagePicker(){const input=$('#importImageFile');input.value='';input.click()}
   function loadImportImage(file){if(!file)return;const url=URL.createObjectURL(file),img=new Image();img.onload=()=>{cleanupImport();const fit=Math.min(450/img.width,450/img.height);importState={img,url,fit,multiplier:1,x:225,y:225,drag:null,preview:false,algorithm:'none',maxOffset:8,contrastTarget:12,contrastStrength:65,regionThreshold:3,result:null};$('#importScale').value=100;$('#importScale').nextElementSibling.textContent='100%';syncImportControls();dom.importDialog.showModal();drawImportPreview()};img.onerror=()=>{URL.revokeObjectURL(url);toast('无法读取这张图片，请换一种格式或文件')};img.src=url}
   function leaveImportPreview(){if(!importState?.preview)return;importState.preview=false;importState.result=null;syncImportControls()}
