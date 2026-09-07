@@ -10,7 +10,7 @@
   const DEFAULT_MIN_DELTA_E = 12;
   const DEFAULT_COLOR = '#777777';
   const STORAGE_KEY = 'pixelAtelier:state:v3';
-  const APP_VERSION = '2.5.5';
+  const APP_VERSION = '2.5.7';
   const DEFAULT_COLORS = [];
   const MIN_COLORS = 1, MAX_COLORS = 16; // 调色板颜色数量上限：默认 16，可在 1–16 间调整
 
@@ -107,7 +107,7 @@
   let zoom=1, panX=0, panY=0;
   let history=[], redoHistory=[], pendingAction=null;
   let drawSession=null, lastPenEnd=null, activePanel=null, fillMode='adjacent';
-  let candidate=DEFAULT_COLOR, editingId=null, colorView='lab',labCursor=null,wheelCursor=null,candidateIsValid=true,colorDragPreview=false,altEyedropper=false;
+  let candidate=DEFAULT_COLOR, editingId=null, colorView='wheel',labCursor=null,wheelCursor=null,candidateIsValid=true,colorDragPreview=false,altEyedropper=false;
   let importState=null;
 
   const dom = {
@@ -313,7 +313,7 @@
   const IMPORT_ALGORITHM_NOTES={none:'使用感知色差量化，不主动移动颜色或改变区域关系。',shift:'利用剩余色位，在允许偏移内恢复差距最大的被合并颜色。',contrast:'固定量化调色板，通过区域邻接图重新分配颜色，优先拉开接触区域。',balanced:'先用偏移恢复颜色，再通过区域邻接图兼顾原色准确度与边界区分。'};
   function syncImportControls(){if(!importState)return;const preview=$('#toggleImportPreview'),importDelta=$('#importMinDeltaE'),importLimit=$('#importMaxColors');preview.textContent=importState.preview?'关闭预览':'开启预览';preview.classList.toggle('active',importState.preview);preview.setAttribute('aria-pressed',String(importState.preview));if(document.activeElement!==importDelta){importDelta.value=state.minDeltaE;importDelta.classList.remove('invalid')}if(document.activeElement!==importLimit){importLimit.value=state.maxColors;importLimit.classList.remove('invalid')}$('#importAlgorithm').value=importState.algorithm;$$('.import-algorithm-option').forEach(label=>label.hidden=!label.dataset.algorithms.split(' ').includes(importState.algorithm));[['importColorOffset',importState.maxOffset,''],['importContrastTarget',importState.contrastTarget,''],['importContrastStrength',importState.contrastStrength,'%'],['importRegionThreshold',importState.regionThreshold,'']].forEach(([id,value,suffix])=>{const input=$('#'+id);input.value=value;input.nextElementSibling.textContent=Number(value).toFixed(value%1?1:0)+suffix});$('#importAlgorithmNote').textContent=IMPORT_ALGORITHM_NOTES[importState.algorithm];const result=importState.result,stats=result?.spatialStats,details=result?` · ${result.palette.length} 色${result.recoveredCount?` · 偏移恢复 ${result.recoveredCount}`:''}${stats?.reassignedRegions?` · 调整 ${stats.reassignedRegions} 区域`:''}`:'';$('#importPreviewHint').textContent=importState.preview?`最终 ${SIZE}×${SIZE} 量化预览${details}`:'拖动图片调整位置，滚轮或滑块缩放'}
   function openImagePicker(){const input=$('#importImageFile');input.value='';input.click()}
-  function loadImportImage(file){if(!file)return;const url=URL.createObjectURL(file),img=new Image();img.onload=()=>{cleanupImport();const fit=Math.min(450/img.width,450/img.height);importState={img,url,fit,multiplier:1,x:225,y:225,drag:null,preview:false,algorithm:'none',maxOffset:8,contrastTarget:12,contrastStrength:65,regionThreshold:3,result:null};$('#importScale').value=100;$('#importScale').nextElementSibling.textContent='100%';syncImportControls();dom.importDialog.showModal();drawImportPreview()};img.onerror=()=>{URL.revokeObjectURL(url);toast('无法读取这张图片，请换一种格式或文件')};img.src=url}
+  function loadImportImage(file){if(!file)return;const url=URL.createObjectURL(file),img=new Image();img.onload=()=>{cleanupImport();const fit=Math.min(450/img.width,450/img.height);importState={img,url,fit,multiplier:1,x:225,y:225,drag:null,preview:false,algorithm:'shift',maxOffset:8,contrastTarget:12,contrastStrength:65,regionThreshold:3,result:null};$('#importScale').value=100;$('#importScale').nextElementSibling.textContent='100%';syncImportControls();dom.importDialog.showModal();drawImportPreview()};img.onerror=()=>{URL.revokeObjectURL(url);toast('无法读取这张图片，请换一种格式或文件')};img.src=url}
   function leaveImportPreview(){if(!importState?.preview)return;importState.preview=false;importState.result=null;syncImportControls()}
   function drawImportPreview(){if(!importState)return;const c=$('#importPreview'),ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);if(importState.preview&&importState.result){ctx.imageSmoothingEnabled=false;const scale=c.width/SIZE,colors=new Map(importState.result.palette.map(entry=>[entry.id,entry.color]));importState.result.pixels.forEach((id,i)=>{const color=colors.get(id);if(!color)return;ctx.fillStyle=color;ctx.fillRect(i%SIZE*scale,Math.floor(i/SIZE)*scale,scale,scale)});return}ctx.imageSmoothingEnabled=true;const s=importState.fit*importState.multiplier,w=importState.img.width*s,h=importState.img.height*s;ctx.drawImage(importState.img,importState.x-w/2,importState.y-h/2,w,h)}
   function fitImport(){if(!importState)return;leaveImportPreview();importState.multiplier=1;importState.x=importState.y=225;$('#importScale').value=100;$('#importScale').nextElementSibling.textContent='100%';drawImportPreview()}
