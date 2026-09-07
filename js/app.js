@@ -8,9 +8,9 @@
   const MAX_ZOOM = 8;
   const MIN_DELTA_E = 8;
   const DEFAULT_MIN_DELTA_E = 12;
-  const DEFAULT_COLOR = '#777777';
+  const DEFAULT_COLOR = '#808080';
   const STORAGE_KEY = 'pixelAtelier:state:v3';
-  const APP_VERSION = '2.5.8';
+  const APP_VERSION = '2.5.9';
   const DEFAULT_COLORS = [];
   const MIN_COLORS = 1, MAX_COLORS = 16; // 调色板颜色数量上限：默认 16，可在 1–16 间调整
 
