@@ -10,7 +10,7 @@
   const DEFAULT_MIN_DELTA_E = 12;
   const DEFAULT_COLOR = '#777777';
   const STORAGE_KEY = 'pixelAtelier:state:v3';
-  const APP_VERSION = '2.5.0';
+  const APP_VERSION = '2.5.2';
   const DEFAULT_COLORS = [];
   const MIN_COLORS = 1, MAX_COLORS = 16; // 调色板颜色数量上限：默认 16，可在 1–16 间调整
 
@@ -210,7 +210,11 @@
     if(tool==='pen'||tool==='eraser'){const connect=tool==='pen'&&e.shiftKey&&lastPenEnd;beginAction(connect?'连接上一笔':tool==='pen'?'绘画像素':'擦除像素');if(connect)paintLine(lastPenEnd,pos,state.currentId);else{paintPoint(pos.x,pos.y,tool==='eraser'?null:state.currentId,true);renderCanvas()}}
     else if(tool==='fill'){beginAction(fillMode==='selection'?(selection.size?'填充选区':'填充画布'):'邻接填充');if(fillMode==='selection'){if(selection.size)selection.forEach(i=>state.pixels[i]=state.currentId);else state.pixels.fill(state.currentId)}else flood(pos.x,pos.y,state.currentId);renderCanvas();commitAction();drawSession=null}
     else if(tool==='eyedropper'){const id=state.pixels[indexOf(pos.x,pos.y)];if(id)selectEditingColor(id);drawSession=null}
-    else if(tool==='select'){if(!e.shiftKey)selection.clear();selection.add(indexOf(pos.x,pos.y));renderSelection()}
+    else if(tool==='select'){
+      if(selectionMode()==='byColor'){const {target,n}=selectSameColorAt(indexOf(pos.x,pos.y),e.shiftKey);toast(target===null?`已全选透明背景（${n} 格）`:`已全选「${paletteColor(target)}」同色格子（${n} 格）`)}
+      else if(selectionMode()==='wand'){const {target,n}=selectFloodAt(indexOf(pos.x,pos.y),e.shiftKey);toast(target===null?`已选中相连透明区域（${n} 格）`:`已选中相连「${paletteColor(target)}」区域（${n} 格）`)}
+      else{if(!e.shiftKey)selection.clear();selection.add(indexOf(pos.x,pos.y));renderSelection()}
+    }
     updateDrawingCursor()
   }
   function pointerMove(e){
@@ -222,7 +226,8 @@
     if(drawSession.tool==='pen'||drawSession.tool==='eraser'){const id=drawSession.tool==='eraser'?null:state.currentId;if(drawSession.last)paintLine(drawSession.last,pos,id);else{paintPoint(pos.x,pos.y,id,true);renderCanvas()}drawSession.last=pos;drawSession.end=pos}
     else if(['line','rect','circle'].includes(drawSession.tool))renderPreview(shapePoints(drawSession.tool,drawSession.start,pos,e.shiftKey));
     else if(drawSession.tool==='select'){
-      if(selectionMode()==='free'){selection.add(indexOf(pos.x,pos.y))}else{selection.clear();rectPoints(drawSession.start,pos).forEach(p=>selection.add(indexOf(p.x,p.y)))}renderSelection()
+      if(['byColor','wand'].includes(selectionMode())){/* 魔棒/同色选择为单击即选，拖动不改变选区 */}
+      else if(selectionMode()==='free'){selection.add(indexOf(pos.x,pos.y))}else{selection.clear();rectPoints(drawSession.start,pos).forEach(p=>selection.add(indexOf(p.x,p.y)))}renderSelection()
     }
   }
   function finishDraw(e,position=null){
@@ -230,6 +235,27 @@
   }
   function pointerUp(e){finishDraw(e);pointers.delete(e.pointerId);if(e.button===2){panSession=null;setTimeout(()=>suppressCanvasMenu=false,0)}if(pointers.size<2)pinchSession=null}
   function selectionMode(){return $('[data-select-mode].active')?.dataset.selectMode||'rect'}
+  // 同色选择：以某个格子的颜色（或透明 null）为准，全选画布上所有相同颜色的格子
+  function selectSameColorAt(i,additive=false){
+    const target=state.pixels[i];let n=0;
+    if(!additive)selection.clear();
+    state.pixels.forEach((id,j)=>{if(id===target){selection.add(j);n++}});
+    renderSelection();return {target,n};
+  }
+  // 魔棒：以点击格的颜色（或透明 null）为准，向上下左右扩散，只选中与它颜色相同且相连的区域
+  function selectFloodAt(i,additive=false){
+    const target=state.pixels[i];if(!additive)selection.clear();
+    const stack=[i],visited=new Set([i]);let n=0;
+    while(stack.length){
+      const cur=stack.pop(),x=cur%SIZE,y=(cur-x)/SIZE,probe=(nx,ny)=>{
+        if(nx<0||ny<0||nx>=SIZE||ny>=SIZE)return;const j=ny*SIZE+nx;
+        if(visited.has(j))return;visited.add(j);
+        if(state.pixels[j]!==target)return;selection.add(j);n++;stack.push(j);
+      };
+      probe(x+1,y);probe(x-1,y);probe(x,y+1);probe(x,y-1);
+    }
+    selection.add(i);n++;renderSelection();return {target,n};
+  }
 
   function boundsOfSelection(){if(!selection.size)return null;const xs=[...selection].map(i=>i%SIZE),ys=[...selection].map(i=>Math.floor(i/SIZE));return {minX:Math.min(...xs),maxX:Math.max(...xs),minY:Math.min(...ys),maxY:Math.max(...ys)}}
   function copySelection(){const b=boundsOfSelection();if(!b)return toast('请先建立选区');const cells=Array.from({length:b.maxY-b.minY+1},()=>Array(b.maxX-b.minX+1));selection.forEach(i=>{const x=i%SIZE,y=Math.floor(i/SIZE);cells[y-b.minY][x-b.minX]={selected:true,id:state.pixels[i]}});clipboard={w:cells[0].length,h:cells.length,cells};toast('已复制选区')}

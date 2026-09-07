@@ -7,7 +7,7 @@
   <meta name="description" content="支持感知色差调色板的 48×48 像素画编辑器">
   <title>Pixel Atelier · 像素画工作台</title>
   <link rel="icon" href="assets/icon.png" type="image/png">
-  <link rel="stylesheet" href="css/global.css?v=20260905-2">
+  <link rel="stylesheet" href="css/global.css?v=20260905-4">
   <style>.topbar{grid-template-columns:minmax(0,1fr) auto}.stage-head{justify-content:flex-end}@media(max-width:900px){.topbar{grid-template-columns:minmax(0,1fr) auto}}@media(max-width:600px){.stage-head>div:first-child{display:flex}}</style>
 </head>
 <body class="dark-theme">
@@ -45,7 +45,7 @@
     </div>
     <div id="selectionPanel" class="option-panel">
       <span class="panel-label">选区</span>
-      <button data-select-mode="rect" class="active">矩形选择</button><button data-select-mode="free">手涂选择</button>
+      <button data-select-mode="rect" class="active">矩形选择</button><button data-select-mode="free">手涂选择</button><button data-select-mode="wand" title="单击画布：选中与点击格颜色相同且相连的整片区域；点击透明背景则选中相连的透明区域">魔棒</button><button data-select-mode="byColor" title="单击画布：全选所有相同颜色的格子；点击透明背景则全选全部透明格子">同色选择</button>
       <button data-selection-action="move">移动</button><button data-selection-action="copy">复制</button><button data-selection-action="cut">剪切</button>
       <button data-selection-action="paste">粘贴</button><button data-selection-action="clear">取消</button><button data-selection-action="place" class="accent">确认放置</button>
     </div>
@@ -121,6 +121,6 @@
 
 <dialog id="dataDialog" class="studio-dialog"><form method="dialog" class="dialog-frame data-dialog"><header><h2>项目数据</h2><button class="close-btn" value="close">×</button></header><textarea id="projectData" spellcheck="false"></textarea><div class="dialog-actions"><button id="copyProjectData" type="button">复制</button><button id="applyProjectData" type="button" class="accent">导入</button></div></form></dialog>
 
-<script src="js/app.js?v=20260905-2"></script>
+<script src="js/app.js?v=20260905-4"></script>
 </body>
 </html>
