@@ -10,7 +10,7 @@
   const DEFAULT_MIN_DELTA_E = 12;
   const DEFAULT_COLOR = '#777777';
   const STORAGE_KEY = 'pixelAtelier:state:v3';
-  const APP_VERSION = '2.5.2';
+  const APP_VERSION = '2.5.4';
   const DEFAULT_COLORS = [];
   const MIN_COLORS = 1, MAX_COLORS = 16; // 调色板颜色数量上限：默认 16，可在 1–16 间调整
 
@@ -137,7 +137,16 @@
   }
   function saveLocal(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(snapshot()));$('#saveStatus').textContent='已自动保存'}catch(error){console.warn('[Pixel Atelier] 自动保存失败',error);$('#saveStatus').textContent='保存失败'}}
   function loadLocal(){try{const raw=localStorage.getItem(STORAGE_KEY);if(!raw){bootLog('storage:empty');return}const saved=JSON.parse(raw),normalized=normalizeSnapshot(saved);['brushShape','brushRadius','penBrushShape','penBrushRadius','eraserBrushShape','eraserBrushRadius'].forEach(key=>normalized[key]=saved[key]);applySnapshot(normalized);bootLog('storage:restored',{colors:state.palette.length})}catch(error){state=makeDefaultState();selection=new Set();console.warn('[Pixel Atelier] 已忽略无效的自动保存数据',error);bootLog('storage:rejected',{message:error.message})}}
-  function toast(text){const t=document.createElement('div');t.className='toast';t.textContent=text;document.body.append(t);requestAnimationFrame(()=>t.classList.add('show'));setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),220)},1900)}
+  function toast(text){
+    const t=document.createElement('div');t.className='toast';t.textContent=text;
+    // 优先用 Popover 顶层显示，避免被打开对话框的模糊底板（dialog ::backdrop）盖住或模糊
+    const topLayer=typeof t.showPopover==='function';
+    if(topLayer)t.setAttribute('popover','manual');
+    document.body.append(t);
+    const reveal=()=>{if(topLayer){try{t.showPopover()}catch(e){/* 已打开等情况忽略，退回普通显示 */}}t.classList.add('show')};
+    requestAnimationFrame(reveal);
+    setTimeout(()=>{t.classList.remove('show');setTimeout(()=>{if(topLayer){try{t.hidePopover()}catch(e){}}t.remove()},220)},1900);
+  }
 
   function buildCanvas(){
     const frag=document.createDocumentFragment(),half=SIZE/2;

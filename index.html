@@ -7,7 +7,7 @@
   <meta name="description" content="支持感知色差调色板的 48×48 像素画编辑器">
   <title>Pixel Atelier · 像素画工作台</title>
   <link rel="icon" href="assets/icon.png" type="image/png">
-  <link rel="stylesheet" href="css/global.css?v=20260905-4">
+  <link rel="stylesheet" href="css/global.css?v=20260905-7">
   <style>.topbar{grid-template-columns:minmax(0,1fr) auto}.stage-head{justify-content:flex-end}@media(max-width:900px){.topbar{grid-template-columns:minmax(0,1fr) auto}}@media(max-width:600px){.stage-head>div:first-child{display:flex}}</style>
 </head>
 <body class="dark-theme">
@@ -99,7 +99,7 @@
           <div id="candidatePreview" class="candidate-preview"><span style="background:#777777"></span><div><small>候选颜色</small><b>#777777</b></div></div>
           <div id="colorValidation" class="validation ok">可添加到调色板</div>
           <div class="color-actions"><button id="updateSelectedColor" type="button" class="accent" title="也可在色图上按 Alt 单击">更新选中颜色</button><button id="deleteSelectedColor" type="button" class="danger" disabled>删除选中颜色</button><button id="addCandidateColor" type="button" class="quiet add-color-action" title="也可在色图上按 Shift 单击">添加新颜色到调色板</button></div>
-          <h3>调色板 <span id="studioPaletteCount">0 / 16</span><button id="clearPalette" type="button" class="danger palette-clear" disabled>清空</button></h3><label class="delta-rule-control">最小色差 <input id="minDeltaE" type="number" min="8" step="0.1" value="12" inputmode="decimal"><small>内置下限 8</small></label><label class="color-limit-control">颜色上限 <input id="maxColors" type="number" min="1" max="16" step="1" value="16" inputmode="numeric"><small>1–16 · 不能低于现有颜色数</small></label><div id="studioPalette" class="studio-palette" aria-label="颜色列表"></div>
+          <h3>调色板 <span id="studioPaletteCount">0 / 16</span><label class="color-limit-inline" title="颜色数量上限：可调 1–16，不能低于现有颜色数">上限 <input id="maxColors" type="number" min="1" max="16" step="1" value="16" inputmode="numeric"></label><button id="clearPalette" type="button" class="danger palette-clear" disabled>清空</button></h3><label class="delta-rule-control">最小色差 <input id="minDeltaE" type="number" min="8" step="0.1" value="12" inputmode="decimal"><small>内置下限 8</small></label><div id="studioPalette" class="studio-palette" aria-label="颜色列表"></div>
           <p class="studio-tip">拖动色图只预览；Shift + 单击添加新颜色，Alt + 单击更新选中颜色。调色板颜色可点击编辑、长按或拖动排序，颜色之间色差至少 <span id="paletteDeltaRule">12</span>。</p>
         </section>
       </div>
@@ -121,6 +121,6 @@
 
 <dialog id="dataDialog" class="studio-dialog"><form method="dialog" class="dialog-frame data-dialog"><header><h2>项目数据</h2><button class="close-btn" value="close">×</button></header><textarea id="projectData" spellcheck="false"></textarea><div class="dialog-actions"><button id="copyProjectData" type="button">复制</button><button id="applyProjectData" type="button" class="accent">导入</button></div></form></dialog>
 
-<script src="js/app.js?v=20260905-4"></script>
+<script src="js/app.js?v=20260905-7"></script>
 </body>
 </html>
