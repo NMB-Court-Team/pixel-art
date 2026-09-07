@@ -115,3 +115,5 @@ body.dark-theme{--bg:#0e1115;--surface:#15191e;--raised:#1a1f25;--soft:#232930;-
 /* 调色板标题行：让 n/N 计数与右侧的「上限」「清空」纵向居中对齐，并略微下移对齐旁边的文字 */
 .color-inspector h3{align-items:center}
 .color-inspector h3 #studioPaletteCount{position:relative;top:1px}
+/* 中置确认弹窗（替代浏览器原生 confirm） */
+.confirm-dialog{width:min(440px,calc(100vw - 24px))}.confirm-dialog .confirm-message{color:var(--muted);font-size:12px;line-height:1.8;margin:0 0 20px;user-select:text}.confirm-actions{display:flex;justify-content:flex-end;gap:8px}

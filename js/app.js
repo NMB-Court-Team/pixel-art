@@ -10,7 +10,7 @@
   const DEFAULT_MIN_DELTA_E = 12;
   const DEFAULT_COLOR = '#777777';
   const STORAGE_KEY = 'pixelAtelier:state:v3';
-  const APP_VERSION = '2.5.7';
+  const APP_VERSION = '2.5.8';
   const DEFAULT_COLORS = [];
   const MIN_COLORS = 1, MAX_COLORS = 16; // 调色板颜色数量上限：默认 16，可在 1–16 间调整
 
@@ -146,6 +146,29 @@
     const reveal=()=>{if(topLayer){try{t.showPopover()}catch(e){/* 已打开等情况忽略，退回普通显示 */}}t.classList.add('show')};
     requestAnimationFrame(reveal);
     setTimeout(()=>{t.classList.remove('show');setTimeout(()=>{if(topLayer){try{t.hidePopover()}catch(e){}}t.remove()},220)},1900);
+  }
+  // 与网页风格一致的中置确认弹窗（替代浏览器原生 confirm）
+  function styledConfirm(message,{title='请确认',okText='确定',danger=true}={}){
+    return new Promise(resolve=>{
+      const dialog=document.createElement('dialog');
+      dialog.className='studio-dialog confirm-dialog';
+      const frame=document.createElement('form');
+      frame.className='dialog-frame';
+      frame.innerHTML='<header><div><span class="eyebrow">CONFIRM</span><h2></h2></div></header><p class="confirm-message"></p><div class="confirm-actions"><button type="button" data-choice="cancel" class="quiet">取消</button><button type="button" data-choice="ok"></button></div>';
+      frame.querySelector('h2').textContent=title;
+      frame.querySelector('.confirm-message').textContent=message;
+      const ok=frame.querySelector('[data-choice="ok"]');
+      ok.textContent=okText;ok.className=danger?'danger':'accent';
+      frame.addEventListener('click',e=>{
+        const btn=e.target.closest('[data-choice]');
+        if(btn&&dialog.open){dialog.close(btn.dataset.choice);return}
+        if(e.target===dialog)dialog.close('cancel');
+      });
+      dialog.append(frame);document.body.append(dialog);
+      dialog.addEventListener('cancel',e=>{e.preventDefault();dialog.close('cancel')});
+      dialog.addEventListener('close',()=>{dialog.remove();resolve(dialog.returnValue==='ok')});
+      dialog.showModal();ok.focus();
+    });
   }
 
   function buildCanvas(){
@@ -298,8 +321,8 @@
   function selectEditingColor(id){editingId=id;state.currentId=id;setCandidate(paletteColor(id),'selection');renderPalette();renderStudioPalette()}
   function applyCandidate(mode=editingId?'update':'add'){const targetId=mode==='update'?editingId:null,target=targetId?state.palette.find(c=>c.id===targetId):null;if(mode==='update'&&!target){syncColorEditorSelection();return false}const check=validCandidate(candidate,targetId);if(!check.valid)return false;if(mode==='update'){beginAction('修改调色板颜色');target.color=candidate;state.currentId=targetId}else{if(state.palette.length>=state.maxColors)return false;beginAction('添加调色板颜色');const item={id:uid(),color:candidate};state.palette.push(item);state.currentId=item.id;editingId=item.id}sortPalettePerceptually();commitAction();renderCanvas();renderSelection();renderPalette();renderStudioPalette();updateStatus();setCandidate(candidate,'selection');toast(mode==='update'?'颜色已更新':'颜色已添加');return true}
   function prepareCandidateForDrawing(){const selected=paletteColor(state.currentId);if(candidate===selected)return;const existing=state.palette.find(entry=>entry.color.toLowerCase()===candidate);if(existing){selectEditingColor(existing.id);return}const nearest=nearestConflict(candidate,null),fallback=message=>{if(nearest){selectEditingColor(nearest.entry.id);toast(`${message}，已就近回落 ${nearest.entry.color}`)}else if(selected){setCandidate(selected,'selection');toast(message)}};if(state.palette.length>=state.maxColors){fallback(`调色板已满（上限 ${state.maxColors} 色）`);return}if(!validCandidate(candidate,null).valid){fallback(`候选颜色不满足最小 色差 ${state.minDeltaE}`);return}applyCandidate('add')}
-  function deleteColor(id){const used=state.pixels.filter(v=>v===id).length;if(used&&!confirm(`这个颜色正在被 ${used} 个像素使用。删除后这些像素会变为透明，确定继续吗？`))return;if(!used&&!confirm('确定删除这个颜色吗？'))return;beginAction('删除调色板颜色');selection.clear();state.pixels.forEach((v,i)=>{if(v===id){state.pixels[i]=null;selection.add(i)}});state.palette=state.palette.filter(c=>c.id!==id);if(state.currentId===id)state.currentId=state.palette[0]?.id||null;if(editingId===id)editingId=null;commitAction();renderAll();setCandidate(paletteColor(state.currentId)||DEFAULT_COLOR,'selection');toast(used?`已删除颜色并选中 ${used} 个透明像素`:'已删除颜色')}
-  function clearPalette(){if(!state.palette.length)return;if(!confirm('确定清空调色板吗？画布中的所有像素也会变为透明。'))return;beginAction('清空调色板');state.palette=[];state.pixels.fill(null);state.currentId=null;editingId=null;lastPenEnd=null;selection.clear();paste=null;commitAction();renderAll();syncColorEditorSelection();toast('调色板已清空')}
+  async function deleteColor(id){const used=state.pixels.filter(v=>v===id).length;const question=used?`这个颜色正在被 ${used} 个像素使用。删除后这些像素会变为透明，确定继续吗？`:'确定删除这个颜色吗？';if(!await styledConfirm(question,{title:'删除颜色',okText:'删除'}))return;beginAction('删除调色板颜色');selection.clear();state.pixels.forEach((v,i)=>{if(v===id){state.pixels[i]=null;selection.add(i)}});state.palette=state.palette.filter(c=>c.id!==id);if(state.currentId===id)state.currentId=state.palette[0]?.id||null;if(editingId===id)editingId=null;commitAction();renderAll();setCandidate(paletteColor(state.currentId)||DEFAULT_COLOR,'selection');toast(used?`已删除颜色并选中 ${used} 个透明像素`:'已删除颜色')}
+  async function clearPalette(){if(!state.palette.length)return;if(!await styledConfirm('确定清空调色板吗？画布中的所有像素也会变为透明。',{title:'清空调色板',okText:'清空'}))return;beginAction('清空调色板');state.palette=[];state.pixels.fill(null);state.currentId=null;editingId=null;lastPenEnd=null;selection.clear();paste=null;commitAction();renderAll();syncColorEditorSelection();toast('调色板已清空')}
   function labFromCanvas(e){const r=$('#labCanvas').getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;return {L:+$('#labLightness').value,a:x*220-110,b:110-y*220}}
   function hslFromWheel(e){const c=$('#wheelCanvas'),r=c.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*c.width-c.width/2,y=(e.clientY-r.top)/r.height*c.height-c.height/2,R=c.width/2-3,s=clamp(Math.hypot(x,y)/R,0,1);return {h:(Math.atan2(y,x)*180/Math.PI+360)%360,s:s*100,l:+$('#wheelLightness').value}}
   function drawLabView(){
@@ -495,7 +518,7 @@
     $$('[data-selection-action]').forEach(btn=>btn.onclick=()=>selectionAction(btn.dataset.selectionAction));
     $('#undo').onclick=undo;$('#redo').onclick=redo;$('#zoomIn').onclick=()=>setZoom(zoom+.25);$('#zoomOut').onclick=()=>setZoom(zoom-.25);$('#resetView').onclick=resetView;
     $('#toggleGrid').onclick=()=>{beginAction(state.grid?'隐藏网格':'显示网格');state.grid=!state.grid;commitAction();renderCanvas()};
-    $('#clearCanvas').onclick=()=>{if(confirm('确定清空整个画布吗？')){beginAction('清空画布');state.pixels.fill(null);selection.clear();lastPenEnd=null;commitAction();renderAll()}};
+    $('#clearCanvas').onclick=async()=>{if(!await styledConfirm('确定清空整个画布吗？',{title:'清空画布',okText:'清空'}))return;beginAction('清空画布');state.pixels.fill(null);selection.clear();lastPenEnd=null;commitAction();renderAll()};
     $('#themeToggle').onclick=()=>{document.body.classList.toggle('dark-theme');$('#themeToggle').textContent=document.body.classList.contains('dark-theme')?'☼':'☾'};
     $('#importImage').onclick=openImagePicker;$('#importImageFile').onchange=e=>loadImportImage(e.target.files[0]);$('#exportPng').onclick=exportPng;$('#exportData').onclick=()=>openData('export');$('#importData').onclick=()=>openData('import');$('#copyProjectData').onclick=copyProjectData;$('#applyProjectData').onclick=applyProjectData;$('#importConfig').onclick=openConfigImport;$('#configText').oninput=updateConfigImport;$('#confirmConfigImport').onclick=confirmConfigImport;$('#importClearPalette').onclick=clearPalette;dom.importDialog.addEventListener('close',cleanupImport);
     $$('.view-tabs button').forEach(btn=>btn.onclick=()=>{colorView=btn.dataset.colorView;$$('.view-tabs button').forEach(b=>b.classList.toggle('active',b===btn));$$('.color-view').forEach(v=>v.classList.toggle('active',v.id===`${colorView}View`));if(colorView==='lab')drawLabView();if(colorView==='wheel')drawWheelView()});
