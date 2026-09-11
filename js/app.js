@@ -10,7 +10,7 @@
   const DEFAULT_MIN_DELTA_E = 12;
   const DEFAULT_COLOR = '#808080';
   const STORAGE_KEY = 'pixelAtelier:state:v3';
-  const APP_VERSION = '2.5.9';
+  const APP_VERSION = '2.6.1';
   const DEFAULT_COLORS = [];
   const MIN_COLORS = 1, MAX_COLORS = 16; // 调色板颜色数量上限：默认 16，可在 1–16 间调整
 
@@ -182,6 +182,7 @@
     const children=dom.canvas.children;
     for(let i=0;i<children.length;i++){const color=paletteColor(state.pixels[i]);children[i].style.backgroundColor=color||'transparent'}
     dom.canvas.classList.toggle('no-grid',!state.grid);$('#toggleGrid').classList.toggle('active',state.grid);
+    if(importState)drawImportPreview();
   }
   function renderSelection(){
     dom.selection.innerHTML='';dom.cancelSelection.hidden=!selection.size&&!paste;const frag=document.createDocumentFragment();
@@ -338,7 +339,44 @@
   function openImagePicker(){const input=$('#importImageFile');input.value='';input.click()}
   function loadImportImage(file){if(!file)return;const url=URL.createObjectURL(file),img=new Image();img.onload=()=>{cleanupImport();const fit=Math.min(450/img.width,450/img.height);importState={img,url,fit,multiplier:1,x:225,y:225,drag:null,preview:false,algorithm:'shift',maxOffset:8,contrastTarget:12,contrastStrength:65,regionThreshold:3,result:null};$('#importScale').value=100;$('#importScale').nextElementSibling.textContent='100%';syncImportControls();dom.importDialog.showModal();drawImportPreview()};img.onerror=()=>{URL.revokeObjectURL(url);toast('无法读取这张图片，请换一种格式或文件')};img.src=url}
   function leaveImportPreview(){if(!importState?.preview)return;importState.preview=false;importState.result=null;syncImportControls()}
-  function drawImportPreview(){if(!importState)return;const c=$('#importPreview'),ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);if(importState.preview&&importState.result){ctx.imageSmoothingEnabled=false;const scale=c.width/SIZE,colors=new Map(importState.result.palette.map(entry=>[entry.id,entry.color]));importState.result.pixels.forEach((id,i)=>{const color=colors.get(id);if(!color)return;ctx.fillStyle=color;ctx.fillRect(i%SIZE*scale,Math.floor(i/SIZE)*scale,scale,scale)});return}ctx.imageSmoothingEnabled=true;const s=importState.fit*importState.multiplier,w=importState.img.width*s,h=importState.img.height*s;ctx.drawImage(importState.img,importState.x-w/2,importState.y-h/2,w,h)}
+  // 导入预览画布叠加与主画布一致的网格线（含中心十字），是否显示跟随主界面网格状态
+  function drawImportGrid(ctx,size){
+    if(!state.grid)return;
+    const scale=size/SIZE;
+    ctx.save();
+    ctx.lineWidth=1;
+    ctx.strokeStyle='rgba(0,0,0,.11)';
+    ctx.beginPath();
+    for(let i=1;i<SIZE;i++){
+      if(i===SIZE/2)continue;
+      const p=Math.round(i*scale)+.5;
+      ctx.moveTo(p,0);ctx.lineTo(p,size);ctx.moveTo(0,p);ctx.lineTo(size,p);
+    }
+    ctx.stroke();
+    const mid=size/2;
+    ctx.lineWidth=2;
+    ctx.strokeStyle='rgba(0,0,0,.6)';
+    ctx.beginPath();
+    ctx.moveTo(mid,0);ctx.lineTo(mid,size);ctx.moveTo(0,mid);ctx.lineTo(size,mid);
+    ctx.stroke();
+    ctx.restore();
+  }
+  function drawImportPreview(){
+    if(!importState)return;const c=$('#importPreview'),ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);
+    if(importState.preview&&importState.result){
+      ctx.imageSmoothingEnabled=false;const scale=c.width/SIZE,colors=new Map(importState.result.palette.map(entry=>[entry.id,entry.color]));
+      // 以对齐到整数像素的边界绘制每个格子，避免非整数缩放留下的接缝被误看成第二层网格线
+      importState.result.pixels.forEach((id,i)=>{
+        const color=colors.get(id);if(!color)return;
+        const cx=i%SIZE,cy=Math.floor(i/SIZE),x0=Math.round(cx*scale),y0=Math.round(cy*scale),x1=Math.round((cx+1)*scale),y1=Math.round((cy+1)*scale);
+        ctx.fillStyle=color;ctx.fillRect(x0,y0,x1-x0,y1-y0);
+      });
+    }else{
+      ctx.imageSmoothingEnabled=true;const s=importState.fit*importState.multiplier,w=importState.img.width*s,h=importState.img.height*s;
+      ctx.drawImage(importState.img,importState.x-w/2,importState.y-h/2,w,h);
+    }
+    drawImportGrid(ctx,c.width);
+  }
   function fitImport(){if(!importState)return;leaveImportPreview();importState.multiplier=1;importState.x=importState.y=225;$('#importScale').value=100;$('#importScale').nextElementSibling.textContent='100%';drawImportPreview()}
   function importPixels(){const off=document.createElement('canvas');off.width=off.height=SIZE;const ctx=off.getContext('2d',{willReadFrequently:true}),scale=SIZE/450,s=importState.fit*importState.multiplier*scale,w=importState.img.width*s,h=importState.img.height*s;ctx.clearRect(0,0,SIZE,SIZE);ctx.drawImage(importState.img,importState.x*scale-w/2,importState.y*scale-h/2,w,h);return ctx.getImageData(0,0,SIZE,SIZE).data}
   function weightedMedoid(members){
@@ -479,7 +517,7 @@
     const c=$('#configPreview');if(!c)return;const ctx=c.getContext('2d'),scale=c.width/SIZE;ctx.clearRect(0,0,c.width,c.height);
     if(!item)return;
     const colors=new Map(item.palette.map(entry=>[entry.id,entry.color]));
-    item.pixels.forEach((id,i)=>{if(!id)return;ctx.fillStyle=colors.get(id);ctx.fillRect(i%SIZE*scale,Math.floor(i/SIZE)*scale,scale,scale)});
+    item.pixels.forEach((id,i)=>{if(!id)return;const cx=i%SIZE,cy=Math.floor(i/SIZE),x0=Math.round(cx*scale),y0=Math.round(cy*scale),x1=Math.round((cx+1)*scale),y1=Math.round((cy+1)*scale);ctx.fillStyle=colors.get(id);ctx.fillRect(x0,y0,x1-x0,y1-y0)});
   }
   function updateConfigImport(){
     clearTimeout(configPreviewTimer);
