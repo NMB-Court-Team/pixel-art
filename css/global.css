@@ -21,11 +21,16 @@ body.dark-theme{--bg:#0e1115;--surface:#15191e;--raised:#1a1f25;--soft:#232930;-
 .viewport.drawing,.viewport.drawing *{cursor:crosshair!important}
 .import-layout aside button.active{background:var(--accent);color:#fff;border-color:var(--accent)}.import-algorithm-select{grid-template-columns:auto 1fr!important}.import-algorithm-select select{min-width:0;width:100%;padding:8px 9px;border:1px solid var(--line);border-radius:8px;background:var(--soft);color:var(--ink);font:inherit;font-size:11px;font-weight:650}.import-algorithm-option[hidden]{display:none}.import-algorithm-option output{min-width:34px;text-align:right}
 .import-min-delta{grid-template-columns:auto 70px 1fr!important}.import-min-delta input{width:70px;padding:7px 8px;border:1px solid var(--line);border-radius:7px;background:var(--soft);color:var(--ink);font:650 11px/1 ui-monospace,monospace;outline:none}.import-min-delta input:focus{border-color:var(--accent)}.import-min-delta input.invalid{border-color:var(--danger);background:color-mix(in srgb,var(--danger) 10%,var(--soft));color:var(--danger);box-shadow:0 0 0 2px color-mix(in srgb,var(--danger) 18%,transparent)}.import-min-delta small{font-size:9px;color:var(--muted)}
-.delta-rule-control{display:grid;grid-template-columns:auto 76px 1fr;align-items:center;gap:8px;margin:-2px 0 10px;color:var(--muted);font-size:10px}.color-inspector .delta-rule-control{grid-column:1/-1}.delta-rule-control input{width:76px;padding:7px 8px;border:1px solid var(--line);border-radius:7px;background:var(--soft);color:var(--ink);font:650 11px/1 ui-monospace,monospace;outline:none}.delta-rule-control input:focus{border-color:var(--accent)}.delta-rule-control input.invalid{border-color:var(--danger);background:color-mix(in srgb,var(--danger) 10%,var(--soft));color:var(--danger);box-shadow:0 0 0 2px color-mix(in srgb,var(--danger) 18%,transparent)}.delta-rule-control small{font-size:9px;color:var(--muted)}
+.delta-rule-control{display:grid;grid-template-columns:auto 76px 1fr;align-items:center;gap:8px;margin:8px 0 0;color:var(--muted);font-size:10px}.delta-rule-control+.delta-rule-control{margin-top:6px}.color-inspector .delta-rule-control{grid-column:1/-1}.delta-rule-control input{width:76px;padding:7px 8px;border:1px solid var(--line);border-radius:7px;background:var(--soft);color:var(--ink);font:650 11px/1 ui-monospace,monospace;outline:none}.delta-rule-control input:focus{border-color:var(--accent)}.delta-rule-control input.invalid{border-color:var(--danger);background:color-mix(in srgb,var(--danger) 10%,var(--soft));color:var(--danger);box-shadow:0 0 0 2px color-mix(in srgb,var(--danger) 18%,transparent)}.delta-rule-control small{font-size:9px;color:var(--muted)}
+.rule-notice{grid-column:1/-1;margin:8px 0 0;padding:7px 9px;border:1px solid color-mix(in srgb,var(--danger) 40%,var(--line));border-radius:8px;background:color-mix(in srgb,var(--danger) 8%,var(--soft));color:var(--danger);font-size:10px;line-height:1.5}
+.studio-swatch .swatch-pixels{position:absolute;right:3px;bottom:2px;font:600 8px/1 ui-monospace,monospace;opacity:.8;pointer-events:none}
+.studio-swatch.under-min{box-shadow:inset 0 0 0 2px var(--danger)}
+.studio-swatch.under-min .swatch-pixels{opacity:1}
 @media(max-width:980px),(max-aspect-ratio:6/5){.color-sidebar .color-map-stack{width:min(100%,308px)}.color-sidebar .wheel-map-stack{width:min(100%,220px)}.color-sidebar .color-map-stack canvas{max-height:none}}
 @media(max-width:600px){.color-sidebar .color-map-stack{width:min(100%,266px)}.color-sidebar .wheel-map-stack{width:min(100%,190px)}}
 .color-actions{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px}.color-actions button{min-width:0;padding-inline:9px}.color-actions .add-color-action{grid-column:1/-1;width:100%}.color-inspector>.color-actions{grid-column:1/-1}
 .color-inspector h3{gap:7px}.color-inspector h3 #studioPaletteCount{margin-left:auto}.color-inspector h3 .palette-clear{width:auto;min-height:0;padding:4px 8px;border-radius:6px;font-size:9px;line-height:1.1}
+.color-inspector h3 #normalizeSmallColors:disabled{opacity:.45;cursor:not-allowed}
 .brush-radius-control{display:flex;align-items:center;gap:8px;padding:0 10px;color:var(--muted);font-size:10px;white-space:nowrap}.brush-radius-control input{width:140px;accent-color:var(--accent)}.brush-radius-control output{min-width:30px;color:var(--ink);font:650 10px/1 ui-monospace,monospace}
 
 .canvas-selection-cancel{position:absolute;top:12px;left:12px;z-index:4;min-height:40px;padding:8px 12px;border-color:color-mix(in srgb,var(--danger) 45%,var(--line));background:color-mix(in srgb,var(--raised) 92%,transparent);color:var(--danger);box-shadow:0 5px 18px rgba(0,0,0,.2);backdrop-filter:blur(6px)}
@@ -79,8 +84,10 @@ body.dark-theme{--bg:#0e1115;--surface:#15191e;--raised:#1a1f25;--soft:#232930;-
   .color-sidebar .delta-rule-control{font-size:13.5px}
   .color-sidebar .delta-rule-control input{font:650 14.5px/1 ui-monospace,monospace}
   .color-sidebar .delta-rule-control small{font-size:12.5px}
+  .color-sidebar .rule-notice{font-size:13.5px}
   .color-sidebar .studio-tip{font-size:14.5px}
   .color-sidebar .studio-swatch{font-size:13px}
+  .color-sidebar .studio-swatch .swatch-pixels{font-size:11px}
   .color-sidebar .color-inspector h3{font-size:17px}
   /* 工具栏与画布周围文字(同样只改字号、不动元素尺寸) */
   .tool span{font-size:12px}   /* 工具栏按钮文字标签:10px → 18px(按你的 +8 比例) */
