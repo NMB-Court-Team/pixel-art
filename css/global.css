@@ -124,3 +124,11 @@ body.dark-theme{--bg:#0e1115;--surface:#15191e;--raised:#1a1f25;--soft:#232930;-
 .color-inspector h3 #studioPaletteCount{position:relative;top:1px}
 /* 中置确认弹窗（替代浏览器原生 confirm） */
 .confirm-dialog{width:min(440px,calc(100vw - 24px))}.confirm-dialog .confirm-message{color:var(--muted);font-size:12px;line-height:1.8;margin:0 0 20px;user-select:text}.confirm-actions{display:flex;justify-content:flex-end;gap:8px}
+/* 导出 PNG 的文件名弹窗 */
+.export-dialog{width:min(460px,calc(100vw - 24px))}
+.export-field{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:9px;color:var(--muted);font-size:11px}
+.export-field input{width:100%;min-width:0;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--soft);color:var(--ink);font:650 12px/1 ui-monospace,monospace;outline:none}
+.export-field input:focus{border-color:var(--accent)}
+.export-suffix{font:650 11px/1 ui-monospace,monospace;color:var(--muted)}
+.export-hint{margin:12px 0 0;color:var(--muted);font-size:10px;line-height:1.6}
+.export-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}

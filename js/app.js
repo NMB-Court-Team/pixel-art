@@ -115,7 +115,7 @@
 
   const dom = {
     canvas:$('#canvas'), transform:$('#canvasTransform'), viewport:$('#viewport'), preview:$('#previewLayer'), selection:$('#selectionLayer'),
-    pattern:$('.transparency-pattern'), cancelSelection:$('#cancelCanvasSelection'), optionDock:$('#optionDock'), historyList:$('#historyList'), colorDialog:$('#colorDialog'), importDialog:$('#importDialog'), configDialog:$('#configDialog')
+    pattern:$('.transparency-pattern'), cancelSelection:$('#cancelCanvasSelection'), optionDock:$('#optionDock'), historyList:$('#historyList'), colorDialog:$('#colorDialog'), importDialog:$('#importDialog'), configDialog:$('#configDialog'), exportDialog:$('#exportDialog')
   };
 
   function paletteColor(id){return state.palette.find(c=>c.id===id)?.color||null}
@@ -381,17 +381,26 @@
   async function deleteColor(id){const used=state.pixels.filter(v=>v===id).length;const question=used?`这个颜色正在被 ${used} 个像素使用。删除后这些像素会变为透明，确定继续吗？`:'确定删除这个颜色吗？';if(!await styledConfirm(question,{title:'删除颜色',okText:'删除'}))return;beginAction('删除调色板颜色');selection.clear();state.pixels.forEach((v,i)=>{if(v===id){state.pixels[i]=null;selection.add(i)}});state.palette=state.palette.filter(c=>c.id!==id);if(state.currentId===id)state.currentId=state.palette[0]?.id||null;if(editingId===id)editingId=null;commitAction();renderAll();setCandidate(paletteColor(state.currentId)||DEFAULT_COLOR,'selection');toast(used?`已删除颜色并选中 ${used} 个透明像素`:'已删除颜色')}
   async function clearPalette(){if(!state.palette.length)return;if(!await styledConfirm('确定清空调色板吗？画布中的所有像素也会变为透明。',{title:'清空调色板',okText:'清空'}))return;beginAction('清空调色板');state.palette=[];state.pixels.fill(null);state.currentId=null;editingId=null;lastPenEnd=null;selection.clear();paste=null;commitAction();renderAll();syncColorEditorSelection();toast('调色板已清空')}
   // 手动整理：把不足最少格数的颜色并入相邻或最接近的颜色，整体作为一条可撤销历史
-  async function normalizeSmallColors(){
-    const min=state.minColorPixels,list=shortColorEntries();
-    if(!list.length){toast(`所有颜色都已满足至少 ${min} 格`);return}
-    const detail=list.map(({entry,count})=>`${entry.color}（${count} 格）`).join('、');
-    if(!await styledConfirm(`将把 ${list.length} 个不足 ${min} 格的颜色并入相邻或最接近的颜色：${detail}。确定继续吗？`,{title:'整理过小色块',okText:'整理',danger:false}))return;
-    const result=enforceMinColorPixels(state.palette,state.pixels,min);
-    if(!result.mergedCount){toast('没有需要整理的颜色');return}
-    beginAction('整理过小色块');state.palette=result.palette;state.pixels=result.pixels;lastPenEnd=null;sortPalettePerceptually();
+  function applySmallColorMerge(label='整理过小色块'){
+    const result=enforceMinColorPixels(state.palette,state.pixels,state.minColorPixels);
+    if(!result.mergedCount)return null;
+    beginAction(label);state.palette=result.palette;state.pixels=result.pixels;lastPenEnd=null;sortPalettePerceptually();
     if(!state.palette.some(entry=>entry.id===state.currentId))state.currentId=state.palette[0]?.id||null;
     if(editingId&&!state.palette.some(entry=>entry.id===editingId))editingId=null;
     commitAction();renderAll();syncColorEditorSelection();
+    return result;
+  }
+  // 把违规色列表写成简短文案，颜色多时只列前几个
+  function shortColorSummary(list,max=4){
+    const shown=list.slice(0,max).map(({entry,count})=>`${entry.color}（${count} 格）`).join('、');
+    return list.length>max?`${shown} 等 ${list.length} 个颜色`:shown;
+  }
+  async function normalizeSmallColors(){
+    const min=state.minColorPixels,list=shortColorEntries();
+    if(!list.length){toast(`所有颜色都已满足至少 ${min} 格`);return}
+    if(!await styledConfirm(`将把 ${list.length} 个不足 ${min} 格的颜色并入相邻或最接近的颜色：${shortColorSummary(list)}。确定继续吗？`,{title:'整理过小色块',okText:'整理',danger:false}))return;
+    const result=applySmallColorMerge('整理过小色块');
+    if(!result){toast('没有需要整理的颜色');return}
     toast(`已合并 ${result.mergedCount} 个过小色块${result.fallback?`（可见像素不足 ${min} 格，已统一为 1 色）`:''}`);
   }
   function labFromCanvas(e){const r=$('#labCanvas').getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;return {L:+$('#labLightness').value,a:x*220-110,b:110-y*220}}
@@ -491,9 +500,61 @@
   async function refreshImportPreview(){if(!importState)return false;const previewButton=$('#toggleImportPreview'),confirmButton=$('#confirmImport');previewButton.disabled=confirmButton.disabled=true;previewButton.textContent='计算预览…';await new Promise(resolve=>requestAnimationFrame(resolve));try{if(!importState)return false;const result=generateImportResult();if(!result?.palette.length){toast('当前画布范围内没有可见像素');return false}importState.result=result;importState.preview=true;drawImportPreview();return true}catch(error){console.error('[Pixel Atelier] 图片预览失败',error);toast('图片预览失败，请重试或更换图片');return false}finally{previewButton.disabled=confirmButton.disabled=false;if(importState)syncImportControls()}}
   function confirmImport(){if(!importState)return;try{const result=importState.preview&&importState.result?importState.result:generateImportResult();if(!result?.palette.length){toast('当前画布范围内没有可见像素');return}beginAction('导入并量化图片');state.palette=result.palette;state.pixels=result.pixels;lastPenEnd=null;sortPalettePerceptually();state.currentId=state.palette[0]?.id||null;selection.clear();commitAction();renderAll();syncColorEditorSelection();dom.importDialog.close();toast(`已生成 ${state.palette.length} 色像素画${result.mergedCount?`，合并 ${result.mergedCount} 组近似颜色`:''}${result.recoveredCount?`，偏移恢复 ${result.recoveredCount} 色`:''}${result.spatialStats?.reassignedRegions?`，调整 ${result.spatialStats.reassignedRegions} 个区域`:''}${result.smallStats?.merged?`，合并 ${result.smallStats.merged} 个过小色块`:''}`)}catch(error){console.error('[Pixel Atelier] 图片转换失败',error);toast('图片转换失败，请重试或更换图片')}}
 
-  async function exportPng(event){const scale=event?.altKey?16:1;if(typeof CompressionStream==='undefined'){exportPngCanvas(scale);return}try{const blob=new Blob([await buildIndexedPng(scale)],{type:'image/png'});downloadPng(blob,scale)}catch(error){console.warn('[Pixel Atelier] 索引色 PNG 导出失败，回退 canvas 导出',error);exportPngCanvas(scale)}}
-  function exportPngCanvas(scale){const c=document.createElement('canvas');c.width=c.height=SIZE*scale;const ctx=c.getContext('2d');ctx.imageSmoothingEnabled=false;state.pixels.forEach((id,i)=>{const color=paletteColor(id);if(!color)return;ctx.fillStyle=color;ctx.fillRect(i%SIZE*scale,Math.floor(i/SIZE)*scale,scale,scale)});c.toBlob(blob=>{if(!blob)return toast('PNG 生成失败');downloadPng(blob,scale)},'image/png')}
-  function downloadPng(blob,scale){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`pixel-atelier-${scale}x-${new Date().toISOString().slice(0,19).replace(/\D/g,'')}.png`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+  // ---------------- 导出 PNG：先弹窗确认文件名，再生成文件 ----------------
+  let exportScale=1;
+  const EXPORT_FALLBACK_NAME='未命名';
+  // 去掉扩展名与文件系统非法字符（含结尾点号、Windows 保留设备名），避免出现 name.png.png 或保存失败
+  function sanitizeExportName(value){
+    const cleaned=String(value??'').replace(/\.png$/i,'').replace(/[\\/:*?"<>|\u0000-\u001f\u007f]/g,'').replace(/\s+/g,' ').trim().replace(/^\.+/,'').slice(0,80).replace(/[. ]+$/,'');
+    return /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i.test(cleaned)?`_${cleaned}`:cleaned;
+  }
+  // 留空（或只剩非法字符）时按「未命名」导出
+  const exportFileName=value=>sanitizeExportName(value)||EXPORT_FALLBACK_NAME;
+  let exportFlowPending=false;
+  // 导出前的规则检查：色块过少时先提示，取消则整个导出作罢，确认则合并后再继续
+  async function resolveExportRuleBreaks(){
+    const min=state.minColorPixels,list=shortColorEntries();
+    if(!list.length)return true;
+    const painted=state.pixels.filter(Boolean).length,detail=shortColorSummary(list),single=list.length===1;
+    const message=(single
+      ?`${detail} 的色块过少（少于 ${min} 格）。`
+      :`有 ${list.length} 个颜色的色块过少（少于 ${min} 格）：${detail}。`)+
+      '继续导出会先把这些颜色自动并入相邻或最接近的颜色，并记入历史（可撤销）。'+
+      (painted<min?`当前可见像素只有 ${painted} 格，不足 ${min} 格，合并后画面会统一为一色。`:'')+
+      '取消则不会导出。';
+    if(!await styledConfirm(message,{title:'颜色色块过少',okText:'合并并导出',danger:false}))return false;
+    const result=applySmallColorMerge('导出前合并过小色块');
+    if(!result){toast('没有需要合并的颜色');return true}
+    toast(`已合并 ${result.mergedCount} 个过小色块${result.fallback?'（画面已统一为 1 色）':''}，继续导出`);
+    return true;
+  }
+  async function openExportDialog(event){
+    if(exportFlowPending)return;
+    exportFlowPending=true;
+    try{
+      if(!await resolveExportRuleBreaks())return;
+      exportScale=event?.altKey?16:1;
+      const input=$('#exportFileName');
+      input.value='';
+      const colors=new Set(state.pixels.filter(Boolean)).size;
+      $('#exportHint').textContent=`${SIZE}×${SIZE} 像素 · 输出 ${SIZE*exportScale}×${SIZE*exportScale} · ${colors} 色 · 索引色 PNG · 留空则命名为「${EXPORT_FALLBACK_NAME}.png」`;
+      dom.exportDialog.showModal();
+      requestAnimationFrame(()=>input.focus());
+    } finally { exportFlowPending=false }
+  }
+  function confirmExport(){
+    const name=exportFileName($('#exportFileName').value);
+    dom.exportDialog.close();
+    exportPngFile(name,exportScale);
+  }
+  async function exportPngFile(name,scale){
+    const fileName=`${name}.png`;
+    if(typeof CompressionStream==='undefined'){exportPngCanvas(scale,fileName);return}
+    try{const blob=new Blob([await buildIndexedPng(scale)],{type:'image/png'});downloadPng(blob,fileName)}
+    catch(error){console.warn('[Pixel Atelier] 索引色 PNG 导出失败，回退 canvas 导出',error);exportPngCanvas(scale,fileName)}
+  }
+  function exportPngCanvas(scale,fileName){const c=document.createElement('canvas');c.width=c.height=SIZE*scale;const ctx=c.getContext('2d');ctx.imageSmoothingEnabled=false;state.pixels.forEach((id,i)=>{const color=paletteColor(id);if(!color)return;ctx.fillStyle=color;ctx.fillRect(i%SIZE*scale,Math.floor(i/SIZE)*scale,scale,scale)});c.toBlob(blob=>{if(!blob)return toast('PNG 生成失败');downloadPng(blob,fileName)},'image/png')}
+  function downloadPng(blob,fileName){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fileName;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
   async function buildIndexedPng(scale){
     const counts=new Map();
     state.pixels.forEach(id=>{if(id!=null)counts.set(id,(counts.get(id)||0)+1)});
@@ -643,7 +704,7 @@
     $('#toggleGrid').onclick=()=>{beginAction(state.grid?'隐藏网格':'显示网格');state.grid=!state.grid;commitAction();renderCanvas()};
     $('#clearCanvas').onclick=async()=>{if(!await styledConfirm('确定清空整个画布吗？',{title:'清空画布',okText:'清空'}))return;beginAction('清空画布');state.pixels.fill(null);selection.clear();lastPenEnd=null;commitAction();renderAll()};
     $('#themeToggle').onclick=()=>{document.body.classList.toggle('dark-theme');$('#themeToggle').textContent=document.body.classList.contains('dark-theme')?'☼':'☾'};
-    $('#importImage').onclick=openImagePicker;$('#importImageFile').onchange=e=>loadImportImage(e.target.files[0]);$('#exportPng').onclick=exportPng;$('#exportData').onclick=()=>openData('export');$('#importData').onclick=()=>openData('import');$('#copyProjectData').onclick=copyProjectData;$('#applyProjectData').onclick=applyProjectData;$('#importConfig').onclick=openConfigImport;$('#configText').oninput=updateConfigImport;$('#confirmConfigImport').onclick=confirmConfigImport;$('#importClearPalette').onclick=clearPalette;dom.importDialog.addEventListener('close',cleanupImport);
+    $('#importImage').onclick=openImagePicker;$('#importImageFile').onchange=e=>loadImportImage(e.target.files[0]);$('#exportPng').onclick=openExportDialog;$('#exportForm').onsubmit=e=>{e.preventDefault();confirmExport()};$$('[data-export-cancel]').forEach(button=>button.onclick=()=>dom.exportDialog.close());$('#exportData').onclick=()=>openData('export');$('#importData').onclick=()=>openData('import');$('#copyProjectData').onclick=copyProjectData;$('#applyProjectData').onclick=applyProjectData;$('#importConfig').onclick=openConfigImport;$('#configText').oninput=updateConfigImport;$('#confirmConfigImport').onclick=confirmConfigImport;$('#importClearPalette').onclick=clearPalette;dom.importDialog.addEventListener('close',cleanupImport);
     $$('.view-tabs button').forEach(btn=>btn.onclick=()=>{colorView=btn.dataset.colorView;$$('.view-tabs button').forEach(b=>b.classList.toggle('active',b===btn));$$('.color-view').forEach(v=>v.classList.toggle('active',v.id===`${colorView}View`));if(colorView==='lab')drawLabView();if(colorView==='wheel')drawWheelView()});
     const requestAddCandidate=()=>{if(state.palette.length>=state.maxColors){toast(`超过颜色数量上限（最多 ${state.maxColors} 色）`);return false}const check=validCandidate(candidate,null);if(!check.valid){toast(`与已有颜色过近，至少需要 色差 ${state.minDeltaE}`);return false}return applyCandidate('add')};$('#updateSelectedColor').onclick=()=>applyCandidate('update');$('#deleteSelectedColor').onclick=()=>{if(editingId)deleteColor(editingId)};$('#clearPalette').onclick=clearPalette;$('#normalizeSmallColors').onclick=normalizeSmallColors;$('#addCandidateColor').onclick=requestAddCandidate;$('#nativePicker').onclick=()=>$('#nativeColor').click();$('#nativeColor').oninput=e=>setCandidate(e.target.value);$('#hexInput').onchange=e=>{let v=e.target.value;if(!v.startsWith('#'))v='#'+v;if(hexToRgb(v))setCandidate(v);else toast('请输入六位 HEX 颜色')};
     const minDeltaInputs=[$('#minDeltaE'),$('#importMinDeltaE')],minDeltaDraftValid=input=>{const value=+input.value,valid=Number.isFinite(value)&&value>=MIN_DELTA_E;input.classList.toggle('invalid',!valid);return valid},syncMinDeltaInputs=()=>minDeltaInputs.forEach(input=>{if(document.activeElement!==input){input.value=state.minDeltaE;input.classList.remove('invalid')}}),commitMinDeltaE=input=>{if(!minDeltaDraftValid(input)){toast(`最小 色差 不能低于内置值 ${MIN_DELTA_E}`);setTimeout(()=>{input.value=state.minDeltaE;input.classList.remove('invalid')},450);return}const value=Math.round(+input.value*10)/10;if(value===state.minDeltaE){syncMinDeltaInputs();return}const refreshPreview=!!importState?.preview;beginAction('调整颜色最小距离');state.minDeltaE=value;commitAction();if(importState)importState.result=null;renderPalette();setCandidate(candidate);syncMinDeltaInputs();if(importState)syncImportControls();if(refreshPreview)refreshImportPreview();toast(`最小 色差 已调整为 ${value}`)};minDeltaInputs.forEach(input=>{input.oninput=()=>minDeltaDraftValid(input);input.onchange=()=>commitMinDeltaE(input);input.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();commitMinDeltaE(input);input.blur()}}});
