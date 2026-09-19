@@ -10,7 +10,7 @@
   const DEFAULT_MIN_DELTA_E = 12;
   const DEFAULT_COLOR = '#808080';
   const STORAGE_KEY = 'pixelAtelier:state:v3';
-  const APP_VERSION = '2.8.2';
+  const APP_VERSION = '2.8.3';
   const DEFAULT_COLORS = [];
   const MIN_COLORS = 1, MAX_COLORS = 16; // 调色板颜色数量上限：默认 16，可在 1–16 间调整
   // TODO: 替换成实际的提交地址（例如作品投稿表单 / 群组收集页）；改完把 SUBMIT_PLACEHOLDER 一并去掉
@@ -131,9 +131,12 @@
   // 「设置为背景色」作用的目标：优先当前选中的调色板颜色，其次与候选色相同的调色板颜色
   function backgroundTargetId(){if(editingId&&paletteColor(editingId))return editingId;const found=state.palette.find(entry=>entry.color===(candidate||'').toLowerCase());return found?found.id:null}
   function transparentCount(pixels=state.pixels){let n=0;for(const id of pixels)if(id==null)n++;return n}
+  // 只统计真正画在画布上的格子（合并逻辑用这个，避免把「没画过、只作背景」的颜色当成合并目标）
+  function paintedColorCounts(pixels=state.pixels){const counts=new Map();for(const id of pixels)if(id!=null)counts.set(id,(counts.get(id)||0)+1);return counts}
   // ---------------- 最小色块规则：同一颜色占据的格子数不能太少 ----------------
+  // 展示/规则判定用的计数：背景色绑定的颜色额外加上所有透明格（导出时这些格子都会是它）
   function colorPixelCounts(pixels=state.pixels){
-    const counts=new Map();for(const id of pixels)if(id!=null)counts.set(id,(counts.get(id)||0)+1);
+    const counts=paintedColorCounts(pixels);
     if(state.backgroundColorId){const filled=transparentCount(pixels);if(filled)counts.set(state.backgroundColorId,(counts.get(state.backgroundColorId)||0)+filled)}
     return counts;
   }
@@ -142,12 +145,12 @@
   // 把不足 min 格的颜色并入"邻接边界最长的幸存色"，四周没有幸存色时退化为 ΔE00 最近的幸存色
   function enforceMinColorPixels(palette,pixels,min=state.minColorPixels){
     min=normalizeMinColorPixels(min);
-    const counts=colorPixelCounts(pixels),painted=palette.filter(entry=>(counts.get(entry.id)||0)>0);
+    const counts=paintedColorCounts(pixels),painted=palette.filter(entry=>(counts.get(entry.id)||0)>0);
     if(!painted.length)return {palette,pixels,mergedCount:0,dropped:[],fallback:false};
     let survivors=painted.filter(entry=>counts.get(entry.id)>=min),fallback=false;
     // 可见像素总数不足 min 时规则无法满足：整体并入格子最多的一色
     if(!survivors.length){fallback=true;survivors=[painted.reduce((best,entry)=>(counts.get(entry.id)||0)>(counts.get(best.id)||0)?entry:best)]}
-    const survivorIds=new Set(survivors.map(entry=>entry.id)),labs=new Map(survivors.map(entry=>[entry.id,colorLab(entry.color)])),dropped=painted.filter(entry=>!survivorIds.has(entry.id));
+    const survivorIds=new Set(survivors.map(entry=>entry.id)),labs=new Map(survivors.map(entry=>[entry.id,colorLab(entry.color)])),dropped=painted.filter(entry=>!survivorIds.has(entry.id)&&entry.id!==state.backgroundColorId);
     if(!dropped.length)return {palette,pixels,mergedCount:0,dropped:[],fallback:false};
     const targets=new Map();
     [...dropped].sort((a,b)=>(counts.get(a.id)||0)-(counts.get(b.id)||0)||a.id.localeCompare(b.id)).forEach(entry=>{
@@ -495,6 +498,7 @@
     const result=enforceMinColorPixels(state.palette,state.pixels,state.minColorPixels);
     if(!result.mergedCount)return null;
     beginAction(label);state.palette=result.palette;state.pixels=result.pixels;lastPenEnd=null;sortPalettePerceptually();
+    if(state.backgroundColorId&&!state.palette.some(entry=>entry.id===state.backgroundColorId))state.backgroundColorId=null;
     if(!state.palette.some(entry=>entry.id===state.currentId))state.currentId=state.palette[0]?.id||null;
     if(editingId&&!state.palette.some(entry=>entry.id===editingId))editingId=null;
     commitAction();renderAll();syncColorEditorSelection();
