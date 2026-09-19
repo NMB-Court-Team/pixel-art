@@ -7,7 +7,7 @@
   <meta name="description" content="支持感知色差调色板的 48×48 像素画编辑器">
   <title>像素画工作台</title>
   <link rel="icon" href="assets/icon.png" type="image/png">
-  <link rel="stylesheet" href="css/global.css?v=20260905-34">
+  <link rel="stylesheet" href="css/global.css?v=20260905-36">
   <style>.topbar{grid-template-columns:minmax(0,1fr) auto}.stage-head{justify-content:flex-end}@media(max-width:900px){.topbar{grid-template-columns:minmax(0,1fr) auto}}@media(max-width:600px){.stage-head>div:first-child{display:flex}}</style>
 </head>
 <body class="dark-theme">
@@ -15,6 +15,7 @@
   <header class="topbar">
     <nav id="toolStrip" class="tool-strip" aria-label="绘图工具">
       <button class="tool" data-action="files" data-panel="filesPanel" title="导入导出"><i>⇅</i><span>文件</span></button>
+      <button class="tool" data-tool="pan" title="移动视图：按住拖动平移画布"><i>✥</i><span>鼠标</span></button>
       <button class="tool active" data-tool="pen" data-panel="brushPanel" title="画笔 B · Shift 点击连接上一笔终点"><i>✎</i><span>画笔</span></button>
       <button class="tool" data-tool="eraser" data-panel="brushPanel" title="橡皮 E"><i>◇</i><span>橡皮</span></button>
       <button class="tool" data-tool="eyedropper" title="取色 Alt（点击画布取色，无二级面板）"><i>⌁</i><span>取色</span></button>
@@ -209,6 +210,6 @@
 </dialog>
 
 <script src="js/png-indexed.js?v=20260905-14"></script>
-<script src="js/app.js?v=20260905-35"></script>
+<script src="js/app.js?v=20260905-36"></script>
 </body>
 </html>

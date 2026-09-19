@@ -10,7 +10,7 @@
   const DEFAULT_MIN_DELTA_E = 12;
   const DEFAULT_COLOR = '#808080';
   const STORAGE_KEY = 'pixelAtelier:state:v3';
-  const APP_VERSION = '2.8.5';
+  const APP_VERSION = '2.8.6';
   const DEFAULT_COLORS = [];
   const MIN_COLORS = 1, MAX_COLORS = 16; // 调色板颜色数量上限：默认 16，可在 1–16 间调整
   // TODO: 替换成实际的提交地址（例如作品投稿表单 / 群组收集页）；改完把 SUBMIT_PLACEHOLDER 一并去掉
@@ -180,7 +180,7 @@
   function normalizeSnapshot(s){
     if(!s||!Array.isArray(s.palette)||s.palette.length>16||!Array.isArray(s.pixels)||s.pixels.length!==SIZE*SIZE)throw new Error('自动保存的数据结构不兼容');
     const ids=new Set(),palette=s.palette.map((entry,i)=>{if(!entry||typeof entry.id!=='string'||!entry.id||ids.has(entry.id)||!hexToRgb(entry.color))throw new Error(`自动保存的调色板第 ${i+1} 项无效`);ids.add(entry.id);return {id:entry.id,color:entry.color.toLowerCase()}});
-    const pixels=s.pixels.map(id=>id===null||ids.has(id)?id:null),tools=['pen','eraser','eyedropper','fill','shape','select'],symmetries=['none','horizontal','vertical','both','rotate4','rotate8'],legacyShapeTool=['line','rect','circle'].includes(s.tool)?s.tool:null;
+    const pixels=s.pixels.map(id=>id===null||ids.has(id)?id:null),tools=['pan','pen','eraser','eyedropper','fill','shape','select'],symmetries=['none','horizontal','vertical','both','rotate4','rotate8'],legacyShapeTool=['line','rect','circle'].includes(s.tool)?s.tool:null;
     const minDeltaE=Number.isFinite(+s.minDeltaE)&&+s.minDeltaE>=MIN_DELTA_E?+s.minDeltaE:DEFAULT_MIN_DELTA_E;return {palette,pixels,currentId:ids.has(s.currentId)?s.currentId:(palette[0]?.id||null),tool:tools.includes(s.tool)?s.tool:(legacyShapeTool?'shape':'pen'),shape:normalizeShapeKey(s.shape||legacyShapeTool||'rect'),symmetry:symmetries.includes(s.symmetry)?s.symmetry:'none',grid:s.grid!==false,minDeltaE,maxColors:normalizeMaxColors(s.maxColors,palette.length),minColorPixels:normalizeMinColorPixels(s.minColorPixels),backgroundColorId:ids.has(s.backgroundColorId)?s.backgroundColorId:(s.backgroundColor&&palette.find(entry=>entry.color===String(s.backgroundColor).toLowerCase())?.id||null),backgroundVisible:s.backgroundVisible!==false,selection:Array.isArray(s.selection)?s.selection.filter(i=>Number.isInteger(i)&&i>=0&&i<SIZE*SIZE):[]};
   }
   function applySnapshot(s){state.palette=clone(s.palette);state.pixels=[...s.pixels];state.currentId=s.currentId;const previousShapeTool=['line','rect','circle'].includes(s.tool)?s.tool:null;state.tool=previousShapeTool?'shape':s.tool;state.shape=normalizeShapeKey(s.shape||previousShapeTool||'rect');state.symmetry=s.symmetry;state.grid=s.grid;state.minDeltaE=Number.isFinite(+s.minDeltaE)&&+s.minDeltaE>=MIN_DELTA_E?+s.minDeltaE:DEFAULT_MIN_DELTA_E;state.maxColors=normalizeMaxColors(s.maxColors,state.palette.length);state.minColorPixels=normalizeMinColorPixels(s.minColorPixels);state.backgroundColorId=state.palette.some(entry=>entry.id===s.backgroundColorId)?s.backgroundColorId:(s.backgroundColor&&state.palette.find(entry=>entry.color===String(s.backgroundColor).toLowerCase())?.id||null);state.backgroundVisible=s.backgroundVisible!==false;const legacyShape=['circle','square'].includes(s.brushShape)?s.brushShape:'square',legacyRadius=clamp(Math.round(+s.brushRadius||0),0,8);state.penBrushShape=['circle','square'].includes(s.penBrushShape)?s.penBrushShape:legacyShape;state.penBrushRadius=Number.isFinite(+s.penBrushRadius)?clamp(Math.round(+s.penBrushRadius),0,8):legacyRadius;state.eraserBrushShape=['circle','square'].includes(s.eraserBrushShape)?s.eraserBrushShape:legacyShape;state.eraserBrushRadius=Number.isFinite(+s.eraserBrushRadius)?clamp(Math.round(+s.eraserBrushRadius),0,8):legacyRadius;selection=new Set(s.selection||[]);paste=null;lastPenEnd=null;renderAll();syncColorEditorSelection()}
@@ -375,7 +375,7 @@
   }
   function currentTool(){return altEyedropper?'eyedropper':state.tool}
   function toolButtonActive(button){if(button.dataset.tool)return button.dataset.tool===currentTool();return button.dataset.panel===activePanel||button.dataset.action==='symmetry'&&state.symmetry!=='none'}
-  function updateStatus(){const tool=currentTool(),label=tool==='fill'?(fillMode==='selection'?'选区填充':'邻接填充'):{pen:'画笔',eraser:'橡皮',eyedropper:'取色',shape:activeShape().label,select:'选区'}[tool]||tool;$('#statusTool').textContent=label;const c=paletteColor(state.currentId)||candidate||DEFAULT_COLOR;$('#statusColor i').style.backgroundColor=c;$('#statusColor b').textContent=c.toUpperCase();$('#zoomValue').textContent=`${Math.round(zoom*100)}%`;$$('button.tool').forEach(b=>b.classList.toggle('active',toolButtonActive(b)));$$('[data-symmetry]').forEach(b=>b.classList.toggle('active',b.dataset.symmetry===state.symmetry))}
+  function updateStatus(){const tool=currentTool(),label=tool==='fill'?(fillMode==='selection'?'选区填充':'邻接填充'):{pen:'画笔',eraser:'橡皮',pan:'鼠标',eyedropper:'取色',shape:activeShape().label,select:'选区'}[tool]||tool;dom.viewport.classList.toggle('pan-tool',tool==='pan');$('#statusTool').textContent=label;const c=paletteColor(state.currentId)||candidate||DEFAULT_COLOR;$('#statusColor i').style.backgroundColor=c;$('#statusColor b').textContent=c.toUpperCase();$('#zoomValue').textContent=`${Math.round(zoom*100)}%`;$$('button.tool').forEach(b=>b.classList.toggle('active',toolButtonActive(b)));$$('[data-symmetry]').forEach(b=>b.classList.toggle('active',b.dataset.symmetry===state.symmetry))}
   function renderAll(){renderCanvas();renderPalette();renderSelection();renderHistory();renderBrushControls();renderShapeControls();updateStatus();applyTransform()}
 
   function updateTransparencyMask(){const w=dom.viewport.clientWidth,h=dom.viewport.clientHeight,size=ART_SIZE*zoom,left=w/2+panX-size/2,top=h/2+panY-size/2,clipLeft=clamp(left,0,w),clipTop=clamp(top,0,h),clipRight=clamp(w-left-size,0,w),clipBottom=clamp(h-top-size,0,h);dom.pattern.style.clipPath=`inset(${clipTop}px ${clipRight}px ${clipBottom}px ${clipLeft}px)`}
@@ -404,8 +404,10 @@
   function updateDrawingCursor(){dom.viewport.classList.toggle('drawing',!!drawSession&&!drawSession.kind)}
   function pointerDown(e){
     pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});dom.viewport.setPointerCapture?.(e.pointerId);
-    if(e.button===2){e.preventDefault();suppressCanvasMenu=true;panSession={x:e.clientX,y:e.clientY,panX,panY};return}
+    if(e.button===2){e.preventDefault();suppressCanvasMenu=true;panSession={x:e.clientX,y:e.clientY,panX,panY,pointerId:e.pointerId};return}
     if(e.pointerType==='touch'&&pointers.size===2){if(drawSession){if(['shape','line','rect','circle'].includes(drawSession.tool)){drawSession=null;dom.preview.innerHTML='';updateDrawingCursor()}else finishDraw(e,drawSession.last)}const p=[...pointers.values()],cx=(p[0].x+p[1].x)/2,cy=(p[0].y+p[1].y)/2;pinchSession={dist:Math.max(1,Math.hypot(p[1].x-p[0].x,p[1].y-p[0].y)),zoom,cx,cy,panX,panY};return}
+    // 「鼠标」工具：左键 / 单指按下即平移视图，始终不绘制（Alt 取色仍然有效；双指仍是缩放+移动）
+    if(e.button===0&&!e.altKey&&currentTool()==='pan'){e.preventDefault();suppressCanvasMenu=true;panSession={x:e.clientX,y:e.clientY,panX,panY,pointerId:e.pointerId};dom.viewport.classList.add('panning');return}
     if(e.button!==0||!e.target.closest('#canvas'))return;const pos=canvasPos(e);if(!pos)return;
     if(paste){drawSession={kind:'paste',start:pos,last:pos,originX:paste.x,originY:paste.y};return}
     const tool=e.altKey?'eyedropper':currentTool();if(['pen','fill','shape'].includes(tool))prepareCandidateForDrawing();drawSession={start:pos,last:pos,end:pos,shift:e.shiftKey,tool,shape:state.shape};
@@ -435,7 +437,7 @@
   function finishDraw(e,position=null){
     const pos=position||canvasPos(e)||drawSession?.end||drawSession?.last;if(drawSession&&!drawSession.kind){const tool=drawSession.tool;if(pos&&['shape','line','rect','circle'].includes(tool)){const spec=shapeSpec(drawSession);beginAction(`绘制${spec.label}`);shapePoints(spec.tool,drawSession.start,pos,spec.hollow!==e.shiftKey).forEach(p=>paintPoint(p.x,p.y));renderCanvas();dom.preview.innerHTML='';commitAction()}else if(tool==='pen'||tool==='eraser'){if(tool==='pen'&&pos)lastPenEnd={...pos};commitAction()}}drawSession=null;updateDrawingCursor()
   }
-  function pointerUp(e){finishDraw(e);pointers.delete(e.pointerId);if(e.button===2){panSession=null;setTimeout(()=>suppressCanvasMenu=false,0)}if(pointers.size<2)pinchSession=null}
+  function pointerUp(e){finishDraw(e);pointers.delete(e.pointerId);if(panSession&&panSession.pointerId===e.pointerId){panSession=null;dom.viewport.classList.remove('panning')}if(e.button===2){panSession=null;dom.viewport.classList.remove('panning');setTimeout(()=>suppressCanvasMenu=false,0)}if(pointers.size<2)pinchSession=null}
   function selectionMode(){return $('[data-select-mode].active')?.dataset.selectMode||'rect'}
   // 同色选择：以某个格子的颜色（或透明 null）为准，全选画布上所有相同颜色的格子
   function selectSameColorAt(i,additive=false){
