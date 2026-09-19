@@ -10,13 +10,13 @@
   const DEFAULT_MIN_DELTA_E = 12;
   const DEFAULT_COLOR = '#808080';
   const STORAGE_KEY = 'pixelAtelier:state:v3';
-  const APP_VERSION = '2.8.4';
+  const APP_VERSION = '2.8.5';
   const DEFAULT_COLORS = [];
   const MIN_COLORS = 1, MAX_COLORS = 16; // 调色板颜色数量上限：默认 16，可在 1–16 间调整
   // TODO: 替换成实际的提交地址（例如作品投稿表单 / 群组收集页）；改完把 SUBMIT_PLACEHOLDER 一并去掉
   const SUBMIT_URL = 'https://example.com/pixel-art-submit';
   const SUBMIT_PLACEHOLDER = 'https://example.com/pixel-art-submit';
-  const MIN_COLOR_PIXELS = 16, DEFAULT_MIN_COLOR_PIXELS = 16, MAX_MIN_COLOR_PIXELS = SIZE * SIZE; // 单一颜色最少占用的格子数：内置下限 16，不可关闭
+  const MIN_COLOR_PIXELS = 16, DEFAULT_MIN_COLOR_PIXELS = 32, MAX_MIN_COLOR_PIXELS = SIZE * SIZE; // 单一颜色最少占用的格子数：默认 32，内置下限 16，不可关闭
 
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
