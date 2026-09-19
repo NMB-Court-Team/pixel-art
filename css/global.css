@@ -132,3 +132,19 @@ body.dark-theme{--bg:#0e1115;--surface:#15191e;--raised:#1a1f25;--soft:#232930;-
 .export-suffix{font:650 11px/1 ui-monospace,monospace;color:var(--muted)}
 .export-hint{margin:12px 0 0;color:var(--muted);font-size:10px;line-height:1.6}
 .export-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+/* 教程入口与翻页教程弹窗 */
+.view-controls #tutorialOpen{margin-right:auto}
+.tutorial-dialog{width:min(560px,calc(100vw - 24px))}
+.tutorial-body{min-height:min(46dvh,300px)}
+.tutorial-page{display:none}
+.tutorial-page.active{display:block}
+.tutorial-page h3{font-size:14px;margin-bottom:10px}
+.tutorial-page ul,.tutorial-page ol{display:grid;gap:7px;padding-left:18px;color:var(--muted);font-size:12px;line-height:1.75}
+.tutorial-page p{margin:0 0 8px;color:var(--muted);font-size:12px;line-height:1.75}
+.tutorial-page h4{margin:10px 0 6px;font-size:12px}
+.tutorial-page code{padding:1px 4px;border-radius:4px;background:var(--soft);color:var(--ink);font:650 11px/1.5 ui-monospace,monospace}
+.tutorial-page a{color:var(--accent)}
+.tutorial-page b{color:var(--ink)}
+.tutorial-actions{display:flex;align-items:center;gap:8px;margin-top:18px}
+.tutorial-progress{margin:0 auto;color:var(--muted);font:650 11px/1 ui-monospace,monospace}
+.tutorial-actions button{min-height:0;padding:8px 14px;font-size:12px}

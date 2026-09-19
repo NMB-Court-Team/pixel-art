@@ -10,7 +10,7 @@
   const DEFAULT_MIN_DELTA_E = 12;
   const DEFAULT_COLOR = '#808080';
   const STORAGE_KEY = 'pixelAtelier:state:v3';
-  const APP_VERSION = '2.6.3';
+  const APP_VERSION = '2.6.5';
   const DEFAULT_COLORS = [];
   const MIN_COLORS = 1, MAX_COLORS = 16; // 调色板颜色数量上限：默认 16，可在 1–16 间调整
   // TODO: 替换成实际的提交地址（例如作品投稿表单 / 群组收集页）
@@ -117,7 +117,7 @@
 
   const dom = {
     canvas:$('#canvas'), transform:$('#canvasTransform'), viewport:$('#viewport'), preview:$('#previewLayer'), selection:$('#selectionLayer'),
-    pattern:$('.transparency-pattern'), cancelSelection:$('#cancelCanvasSelection'), optionDock:$('#optionDock'), historyList:$('#historyList'), colorDialog:$('#colorDialog'), importDialog:$('#importDialog'), configDialog:$('#configDialog'), exportDialog:$('#exportDialog')
+    pattern:$('.transparency-pattern'), cancelSelection:$('#cancelCanvasSelection'), optionDock:$('#optionDock'), historyList:$('#historyList'), colorDialog:$('#colorDialog'), importDialog:$('#importDialog'), configDialog:$('#configDialog'), exportDialog:$('#exportDialog'), tutorialDialog:$('#tutorialDialog')
   };
 
   function paletteColor(id){return state.palette.find(c=>c.id===id)?.color||null}
@@ -211,6 +211,79 @@
       dialog.showModal();ok.focus();
     });
   }
+  // ---------------- 翻页教程：工具栏「教程」按钮 + 首次打开网页自动展示一次 ----------------
+  const TUTORIAL_KEY='pixelAtelier:tutorial:v1';
+  let tutorialPage=0;
+  function tutorialTotal(){return $$('.tutorial-page').length}
+  function renderTutorial(){
+    const total=tutorialTotal();if(!total)return;
+    tutorialPage=clamp(tutorialPage,0,total-1);
+    $$('.tutorial-page').forEach((page,i)=>page.classList.toggle('active',i===tutorialPage));
+    $('#tutorialProgress').textContent=`${tutorialPage+1} / ${total}`;
+    $('#tutorialPrev').disabled=tutorialPage===0;
+    $('#tutorialNext').textContent=tutorialPage>=total-1?'开始使用':'下一页';
+  }
+  function openTutorial(page=0){tutorialPage=page;renderTutorial();if(!dom.tutorialDialog.open)dom.tutorialDialog.showModal()}
+  function closeTutorial(){if(dom.tutorialDialog.open)dom.tutorialDialog.close()}
+  function stepTutorial(delta){const total=tutorialTotal(),next=tutorialPage+delta;if(next<0)return;if(next>=total){closeTutorial();return}tutorialPage=next;renderTutorial()}
+  // ---------------- tutorial.md：按二级标题（##）分页，运行时自动读取转换 ----------------
+  function escapeHtml(text){return String(text).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]))}
+  function inlineMarkdown(text){
+    return escapeHtml(text)
+      .replace(/`([^`]+)`/g,'<code>$1</code>')
+      .replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>')
+      .replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+  }
+  function parseTutorialMarkdown(markdown){
+    const lines=String(markdown).replace(/\r\n?/g,'\n').split('\n');
+    let title=null,page=null,paragraph=[],list=null;const pages=[];
+    const flushParagraph=()=>{if(page&&paragraph.length)page.html.push(`<p>${inlineMarkdown(paragraph.join(' '))}</p>`);paragraph=[]};
+    const flushList=()=>{if(page&&list&&list.items.length)page.html.push(`<${list.type}>${list.items.map(item=>`<li>${inlineMarkdown(item)}</li>`).join('')}</${list.type}>`);list=null};
+    const flushAll=()=>{flushParagraph();flushList()};
+    lines.forEach(raw=>{
+      const line=raw.trim();
+      if(!line){flushAll();return}
+      const heading1=/^#\s+(.+)$/.exec(line),heading2=/^##\s+(.+)$/.exec(line),heading3=/^###\s+(.+)$/.exec(line);
+      if(heading2){flushAll();page={title:heading2[1].trim(),html:[]};pages.push(page);return}
+      if(heading1){title=heading1[1].trim();return}
+      if(heading3){flushAll();if(page)page.html.push(`<h4>${inlineMarkdown(heading3[1])}</h4>`);return}
+      const bullet=/^[-*]\s+(.+)$/.exec(line),numbered=/^\d+[.)]\s+(.+)$/.exec(line);
+      if(bullet||numbered){
+        flushParagraph();const type=bullet?'ul':'ol',text=(bullet||numbered)[1];
+        if(!list||list.type!==type){flushList();list={type,items:[]}}
+        list.items.push(text);return;
+      }
+      flushList();paragraph.push(line.replace(/^>\s?/,''));
+    });
+    flushAll();return {title,pages};
+  }
+  function applyTutorialMarkdown(markdown){
+    const {title,pages}=parseTutorialMarkdown(markdown);
+    if(!pages.length)return false;
+    if(title){const heading=dom.tutorialDialog.querySelector('.dialog-frame h2');if(heading)heading.textContent=title}
+    const body=$('.tutorial-body',dom.tutorialDialog);
+    if(!body)return false;
+    body.innerHTML=pages.map((item,i)=>`<article class="tutorial-page${i===0?' active':''}"><h3>${inlineMarkdown(item.title)}</h3>${item.html.join('')}</article>`).join('');
+    tutorialPage=0;renderTutorial();return true;
+  }
+  let tutorialMarkdownPromise=null;
+  function loadTutorialMarkdown(){
+    if(tutorialMarkdownPromise)return tutorialMarkdownPromise;
+    tutorialMarkdownPromise=(async()=>{
+      try{
+        const response=await fetch('tutorial.md',{cache:'no-cache'});
+        if(!response.ok)throw new Error(`HTTP ${response.status}`);
+        const text=await response.text();
+        if(!applyTutorialMarkdown(text))throw new Error('tutorial.md 内容为空');
+        return true;
+      }catch(error){
+        console.warn('[Pixel Atelier] tutorial.md 读取失败，继续使用内置教程',error);
+        return false;
+      }
+    })();
+    return tutorialMarkdownPromise;
+  }
+  async function maybeShowTutorial(){let first=false;try{first=!localStorage.getItem(TUTORIAL_KEY);if(first)localStorage.setItem(TUTORIAL_KEY,'1')}catch(error){first=true;console.warn('[Pixel Atelier] 教程标记读写失败',error)}if(!first)return;await loadTutorialMarkdown();openTutorial(0)}
 
   function buildCanvas(){
     const frag=document.createDocumentFragment(),half=SIZE/2;
@@ -712,6 +785,11 @@
     $('#toggleGrid').onclick=()=>{beginAction(state.grid?'隐藏网格':'显示网格');state.grid=!state.grid;commitAction();renderCanvas()};
     $('#clearCanvas').onclick=async()=>{if(!await styledConfirm('确定清空整个画布吗？',{title:'清空画布',okText:'清空'}))return;beginAction('清空画布');state.pixels.fill(null);selection.clear();lastPenEnd=null;commitAction();renderAll()};
     $('#themeToggle').onclick=()=>{document.body.classList.toggle('dark-theme');$('#themeToggle').textContent=document.body.classList.contains('dark-theme')?'☼':'☾'};
+    $('#tutorialOpen').onclick=async()=>{await loadTutorialMarkdown();openTutorial(0)};
+    $('#tutorialPrev').onclick=()=>stepTutorial(-1);
+    $('#tutorialNext').onclick=()=>stepTutorial(1);
+    $$('[data-tutorial-close]').forEach(button=>button.onclick=()=>closeTutorial());
+    dom.tutorialDialog.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'){e.preventDefault();stepTutorial(-1)}else if(e.key==='ArrowRight'){e.preventDefault();stepTutorial(1)}});
     $('#importImage').onclick=openImagePicker;$('#importImageFile').onchange=e=>loadImportImage(e.target.files[0]);$('#exportPng').onclick=openExportDialog;$('#exportForm').onsubmit=e=>{e.preventDefault();confirmExport()};$$('[data-export-cancel]').forEach(button=>button.onclick=()=>dom.exportDialog.close());
     $('#submitWork').onclick=()=>{const link=document.createElement('a');link.href=SUBMIT_URL;link.target='_blank';link.rel='noopener noreferrer';document.body.append(link);link.click();link.remove()};$('#exportData').onclick=()=>openData('export');$('#importData').onclick=()=>openData('import');$('#copyProjectData').onclick=copyProjectData;$('#applyProjectData').onclick=applyProjectData;$('#importConfig').onclick=openConfigImport;$('#configText').oninput=updateConfigImport;$('#confirmConfigImport').onclick=confirmConfigImport;$('#importClearPalette').onclick=clearPalette;dom.importDialog.addEventListener('close',cleanupImport);
     $$('.view-tabs button').forEach(btn=>btn.onclick=()=>{colorView=btn.dataset.colorView;$$('.view-tabs button').forEach(b=>b.classList.toggle('active',b===btn));$$('.color-view').forEach(v=>v.classList.toggle('active',v.id===`${colorView}View`));if(colorView==='lab')drawLabView();if(colorView==='wheel')drawWheelView()});
@@ -754,7 +832,7 @@
     handle.addEventListener('dblclick',()=>{delete prefs.sidebarW;delete prefs.sidebarH;appEl.style.removeProperty('--sidebar-w');sidebar.style.removeProperty('--sidebar-h');savePrefs()});
   }
 
-  function init(){bootLog('init:start');$('#appVersion').textContent='v'+APP_VERSION;initSidebarResize();buildCanvas();bootLog('canvas:built',{pixels:dom.canvas.children.length});bindEvents();bootLog('events:bound');loadLocal();renderAll();bootLog('ui:rendered',{colors:state.palette.length});setCandidate(paletteColor(state.currentId)||DEFAULT_COLOR,'selection');requestAnimationFrame(()=>requestAnimationFrame(()=>{resetView();const r=dom.viewport.getBoundingClientRect();bootLog('init:ready',{zoom:Math.round(zoom*100),viewport:{width:Math.round(r.width),height:Math.round(r.height)}})}))}
+  function init(){bootLog('init:start');$('#appVersion').textContent='v'+APP_VERSION;initSidebarResize();buildCanvas();bootLog('canvas:built',{pixels:dom.canvas.children.length});bindEvents();bootLog('events:bound');loadLocal();renderAll();bootLog('ui:rendered',{colors:state.palette.length});setCandidate(paletteColor(state.currentId)||DEFAULT_COLOR,'selection');requestAnimationFrame(()=>requestAnimationFrame(()=>{resetView();const r=dom.viewport.getBoundingClientRect();bootLog('init:ready',{zoom:Math.round(zoom*100),viewport:{width:Math.round(r.width),height:Math.round(r.height)}})}));maybeShowTutorial()}
   function showStartupError(error){console.error('Pixel Atelier failed to initialize',error);bootLog('init:failed',{name:error.name,message:error.message,stack:error.stack});const notice=document.createElement('div');notice.className='startup-error';const title=document.createElement('b'),summary=document.createElement('span'),details=document.createElement('pre');title.textContent='编辑器加载失败';summary.textContent=`${error.name}: ${error.message}`;details.textContent=bootEntries.map(entry=>`+${entry.ms}ms  ${entry.stage}${entry.details?.message?` — ${entry.details.message}`:''}`).join('\n');notice.append(title,summary,details);document.body.append(notice)}
   window.addEventListener('unhandledrejection',event=>{console.error('[Pixel Atelier] 未处理的异步错误',event.reason)});
   try{init()}catch(error){showStartupError(error)}
