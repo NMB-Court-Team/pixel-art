@@ -19,9 +19,7 @@
       <button class="tool" data-tool="eraser" data-panel="brushPanel" title="橡皮 E"><i>◇</i><span>橡皮</span></button>
       <button class="tool" data-tool="eyedropper" title="取色 Alt"><i>⌁</i><span>取色</span></button>
       <button class="tool" data-tool="fill" data-panel="fillPanel" title="填充 F"><i>◒</i><span>填充</span></button>
-      <button class="tool" data-tool="line" title="直线"><i>╱</i><span>直线</span></button>
-      <button class="tool" data-tool="rect" title="矩形"><i>□</i><span>矩形</span></button>
-      <button class="tool" data-tool="circle" title="圆形"><i>○</i><span>圆形</span></button>
+      <button class="tool" data-tool="shape" data-panel="shapePanel" title="图形：矩形 / 空心矩形 / 圆形 / 空心圆形 / 直线"><i>▣</i><span>图形</span></button>
       <button class="tool" data-tool="select" data-panel="selectionPanel" title="选区 M"><i>▭</i><span>选区</span></button>
       <button class="tool" data-action="symmetry" data-panel="symmetryPanel" title="对称"><i>⌁</i><span>对称</span></button>
       <button class="tool" data-action="history" data-panel="historyPanel" title="历史记录"><i>↶</i><span>历史</span></button>
@@ -42,6 +40,11 @@
       <span class="panel-label">填充模式</span>
       <button data-fill-mode="adjacent" class="active">邻接填充</button><button data-fill-mode="selection">选区填充</button>
       <span class="microcopy">选区填充在没有选区时会填满整个画布</span>
+    </div>
+    <div id="shapePanel" class="option-panel">
+      <span class="panel-label">图形</span>
+      <button data-shape="rect" class="active">矩形</button><button data-shape="rectHollow">空心矩形</button><button data-shape="circle">圆形</button><button data-shape="circleHollow">空心圆形</button><button data-shape="line">直线</button>
+      <span class="microcopy">按住 Shift 临时切换空心 / 实心</span>
     </div>
     <div id="selectionPanel" class="option-panel">
       <span class="panel-label">选区</span>
@@ -130,6 +133,6 @@
 </dialog>
 
 <script src="js/png-indexed.js?v=20260905-14"></script>
-<script src="js/app.js?v=20260905-16"></script>
+<script src="js/app.js?v=20260905-17"></script>
 </body>
 </html>

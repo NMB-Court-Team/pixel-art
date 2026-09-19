@@ -10,7 +10,7 @@
   const DEFAULT_MIN_DELTA_E = 12;
   const DEFAULT_COLOR = '#808080';
   const STORAGE_KEY = 'pixelAtelier:state:v3';
-  const APP_VERSION = '2.6.1';
+  const APP_VERSION = '2.6.2';
   const DEFAULT_COLORS = [];
   const MIN_COLORS = 1, MAX_COLORS = 16; // 调色板颜色数量上限：默认 16，可在 1–16 间调整
   const MIN_COLOR_PIXELS = 16, DEFAULT_MIN_COLOR_PIXELS = 16, MAX_MIN_COLOR_PIXELS = SIZE * SIZE; // 单一颜色最少占用的格子数：内置下限 16，不可关闭
@@ -104,7 +104,7 @@
   function renderMarkerLayer(layer,key,markers){if(layer.dataset.key===key)return;layer.dataset.key=key;layer.replaceChildren();markers.forEach(marker=>{const circle=document.createElementNS(SVG_NS,'circle'),label=document.createElementNS(SVG_NS,'text');circle.setAttribute('cx',marker.x);circle.setAttribute('cy',marker.y);circle.setAttribute('r',marker.active?8:6);circle.setAttribute('fill',marker.color);circle.setAttribute('stroke',contrastText(marker.color));circle.classList.add('palette-marker');if(marker.active)circle.classList.add('active');label.setAttribute('x',marker.x);label.setAttribute('y',marker.y);label.setAttribute('fill',contrastText(marker.color));label.classList.add('palette-marker-label');label.textContent=marker.label;layer.append(circle,label)})}
   function updateCandidateMarker(marker,x,y,visible=true){marker.setAttribute('cx',x);marker.setAttribute('cy',y);marker.style.opacity=visible?'1':'0';marker.style.setProperty('--candidate-color',candidate);marker.style.setProperty('--candidate-stroke',candidateIsValid?contrastText(candidate):'#ff3b30')}
 
-  const makeDefaultState=()=>({palette:DEFAULT_COLORS.map((color,i)=>({id:`p${i}`,color})),pixels:Array(SIZE*SIZE).fill(null),currentId:null,tool:'pen',symmetry:'none',grid:false,minDeltaE:DEFAULT_MIN_DELTA_E,maxColors:MAX_COLORS,penBrushShape:'square',penBrushRadius:0,eraserBrushShape:'square',eraserBrushRadius:0,minColorPixels:DEFAULT_MIN_COLOR_PIXELS});
+  const makeDefaultState=()=>({palette:DEFAULT_COLORS.map((color,i)=>({id:`p${i}`,color})),pixels:Array(SIZE*SIZE).fill(null),currentId:null,tool:'pen',symmetry:'none',grid:false,minDeltaE:DEFAULT_MIN_DELTA_E,maxColors:MAX_COLORS,penBrushShape:'square',penBrushRadius:0,eraserBrushShape:'square',eraserBrushRadius:0,minColorPixels:DEFAULT_MIN_COLOR_PIXELS,shape:'rect'});
   let state = makeDefaultState();
   let selection = new Set(), clipboard = null, paste = null;
   let zoom=1, panX=0, panY=0;
@@ -157,14 +157,14 @@
   }
   function indexOf(x,y){return y*SIZE+x}
   function pixelEditable(x,y){return !selection.size||selection.has(indexOf(x,y))}
-  function snapshot(){return {palette:clone(state.palette),pixels:[...state.pixels],currentId:state.currentId,tool:state.tool,symmetry:state.symmetry,grid:state.grid,minDeltaE:state.minDeltaE,penBrushShape:state.penBrushShape,penBrushRadius:state.penBrushRadius,eraserBrushShape:state.eraserBrushShape,eraserBrushRadius:state.eraserBrushRadius,maxColors:state.maxColors,minColorPixels:state.minColorPixels,selection:[...selection]}}
+  function snapshot(){return {palette:clone(state.palette),pixels:[...state.pixels],currentId:state.currentId,tool:state.tool,symmetry:state.symmetry,grid:state.grid,minDeltaE:state.minDeltaE,penBrushShape:state.penBrushShape,penBrushRadius:state.penBrushRadius,eraserBrushShape:state.eraserBrushShape,eraserBrushRadius:state.eraserBrushRadius,maxColors:state.maxColors,minColorPixels:state.minColorPixels,shape:state.shape,selection:[...selection]}}
   function normalizeSnapshot(s){
     if(!s||!Array.isArray(s.palette)||s.palette.length>16||!Array.isArray(s.pixels)||s.pixels.length!==SIZE*SIZE)throw new Error('自动保存的数据结构不兼容');
     const ids=new Set(),palette=s.palette.map((entry,i)=>{if(!entry||typeof entry.id!=='string'||!entry.id||ids.has(entry.id)||!hexToRgb(entry.color))throw new Error(`自动保存的调色板第 ${i+1} 项无效`);ids.add(entry.id);return {id:entry.id,color:entry.color.toLowerCase()}});
-    const pixels=s.pixels.map(id=>id===null||ids.has(id)?id:null),tools=['pen','eraser','eyedropper','fill','line','rect','circle','select'],symmetries=['none','horizontal','vertical','both','rotate4','rotate8'];
-    const minDeltaE=Number.isFinite(+s.minDeltaE)&&+s.minDeltaE>=MIN_DELTA_E?+s.minDeltaE:DEFAULT_MIN_DELTA_E;return {palette,pixels,currentId:ids.has(s.currentId)?s.currentId:(palette[0]?.id||null),tool:tools.includes(s.tool)?s.tool:'pen',symmetry:symmetries.includes(s.symmetry)?s.symmetry:'none',grid:s.grid!==false,minDeltaE,maxColors:normalizeMaxColors(s.maxColors,palette.length),minColorPixels:normalizeMinColorPixels(s.minColorPixels),selection:Array.isArray(s.selection)?s.selection.filter(i=>Number.isInteger(i)&&i>=0&&i<SIZE*SIZE):[]};
+    const pixels=s.pixels.map(id=>id===null||ids.has(id)?id:null),tools=['pen','eraser','eyedropper','fill','shape','select'],symmetries=['none','horizontal','vertical','both','rotate4','rotate8'],legacyShapeTool=['line','rect','circle'].includes(s.tool)?s.tool:null;
+    const minDeltaE=Number.isFinite(+s.minDeltaE)&&+s.minDeltaE>=MIN_DELTA_E?+s.minDeltaE:DEFAULT_MIN_DELTA_E;return {palette,pixels,currentId:ids.has(s.currentId)?s.currentId:(palette[0]?.id||null),tool:tools.includes(s.tool)?s.tool:(legacyShapeTool?'shape':'pen'),shape:normalizeShapeKey(s.shape||legacyShapeTool||'rect'),symmetry:symmetries.includes(s.symmetry)?s.symmetry:'none',grid:s.grid!==false,minDeltaE,maxColors:normalizeMaxColors(s.maxColors,palette.length),minColorPixels:normalizeMinColorPixels(s.minColorPixels),selection:Array.isArray(s.selection)?s.selection.filter(i=>Number.isInteger(i)&&i>=0&&i<SIZE*SIZE):[]};
   }
-  function applySnapshot(s){state.palette=clone(s.palette);state.pixels=[...s.pixels];state.currentId=s.currentId;state.tool=s.tool;state.symmetry=s.symmetry;state.grid=s.grid;state.minDeltaE=Number.isFinite(+s.minDeltaE)&&+s.minDeltaE>=MIN_DELTA_E?+s.minDeltaE:DEFAULT_MIN_DELTA_E;state.maxColors=normalizeMaxColors(s.maxColors,state.palette.length);state.minColorPixels=normalizeMinColorPixels(s.minColorPixels);const legacyShape=['circle','square'].includes(s.brushShape)?s.brushShape:'square',legacyRadius=clamp(Math.round(+s.brushRadius||0),0,8);state.penBrushShape=['circle','square'].includes(s.penBrushShape)?s.penBrushShape:legacyShape;state.penBrushRadius=Number.isFinite(+s.penBrushRadius)?clamp(Math.round(+s.penBrushRadius),0,8):legacyRadius;state.eraserBrushShape=['circle','square'].includes(s.eraserBrushShape)?s.eraserBrushShape:legacyShape;state.eraserBrushRadius=Number.isFinite(+s.eraserBrushRadius)?clamp(Math.round(+s.eraserBrushRadius),0,8):legacyRadius;selection=new Set(s.selection||[]);paste=null;lastPenEnd=null;renderAll();syncColorEditorSelection()}
+  function applySnapshot(s){state.palette=clone(s.palette);state.pixels=[...s.pixels];state.currentId=s.currentId;const previousShapeTool=['line','rect','circle'].includes(s.tool)?s.tool:null;state.tool=previousShapeTool?'shape':s.tool;state.shape=normalizeShapeKey(s.shape||previousShapeTool||'rect');state.symmetry=s.symmetry;state.grid=s.grid;state.minDeltaE=Number.isFinite(+s.minDeltaE)&&+s.minDeltaE>=MIN_DELTA_E?+s.minDeltaE:DEFAULT_MIN_DELTA_E;state.maxColors=normalizeMaxColors(s.maxColors,state.palette.length);state.minColorPixels=normalizeMinColorPixels(s.minColorPixels);const legacyShape=['circle','square'].includes(s.brushShape)?s.brushShape:'square',legacyRadius=clamp(Math.round(+s.brushRadius||0),0,8);state.penBrushShape=['circle','square'].includes(s.penBrushShape)?s.penBrushShape:legacyShape;state.penBrushRadius=Number.isFinite(+s.penBrushRadius)?clamp(Math.round(+s.penBrushRadius),0,8):legacyRadius;state.eraserBrushShape=['circle','square'].includes(s.eraserBrushShape)?s.eraserBrushShape:legacyShape;state.eraserBrushRadius=Number.isFinite(+s.eraserBrushRadius)?clamp(Math.round(+s.eraserBrushRadius),0,8):legacyRadius;selection=new Set(s.selection||[]);paste=null;lastPenEnd=null;renderAll();syncColorEditorSelection()}
   function beginAction(label){if(!pendingAction)pendingAction={label,before:snapshot()}}
   function commitAction(){if(!pendingAction)return;const after=snapshot();if(JSON.stringify(pendingAction.before)!==JSON.stringify(after)){history.push({...pendingAction,after,time:Date.now()});if(history.length>120)history.shift();redoHistory=[]}pendingAction=null;renderHistory();saveLocal()}
   function cancelAction(){if(pendingAction){applySnapshot(pendingAction.before);pendingAction=null}}
@@ -238,6 +238,7 @@
   function activeBrushTool(){return state.tool==='eraser'?'eraser':'pen'}
   function brushSettings(tool=activeBrushTool()){return{shape:state[`${tool}BrushShape`]||'square',radius:clamp(Math.round(+state[`${tool}BrushRadius`]||0),0,8)}}
   function renderBrushControls(){const tool=activeBrushTool(),{shape,radius}=brushSettings(tool),input=$('#brushRadius');$$('[data-brush-shape]').forEach(button=>button.classList.toggle('active',button.dataset.brushShape===shape));input.value=radius;input.nextElementSibling.textContent=`${radius} px`;$('#brushPanelLabel').textContent=tool==='eraser'?'橡皮笔尖':'画笔笔尖'}
+  function renderShapeControls(){$$('[data-shape]').forEach(button=>button.classList.toggle('active',button.dataset.shape===normalizeShapeKey(state.shape)))}
   function renderStudioPalette(){
     const root=$('#studioPalette');if(!root)return;root.innerHTML='';
     const counts=colorPixelCounts(),min=state.minColorPixels,short=[];
@@ -267,8 +268,8 @@
   }
   function currentTool(){return altEyedropper?'eyedropper':state.tool}
   function toolButtonActive(button){if(button.dataset.tool)return button.dataset.tool===currentTool();return button.dataset.panel===activePanel||button.dataset.action==='symmetry'&&state.symmetry!=='none'}
-  function updateStatus(){const tool=currentTool(),label=tool==='fill'?(fillMode==='selection'?'选区填充':'邻接填充'):{pen:'画笔',eraser:'橡皮',eyedropper:'取色',line:'直线',rect:'矩形',circle:'圆形',select:'选区'}[tool]||tool;$('#statusTool').textContent=label;const c=paletteColor(state.currentId)||candidate||DEFAULT_COLOR;$('#statusColor i').style.backgroundColor=c;$('#statusColor b').textContent=c.toUpperCase();$('#zoomValue').textContent=`${Math.round(zoom*100)}%`;$$('.tool').forEach(b=>b.classList.toggle('active',toolButtonActive(b)));$$('[data-symmetry]').forEach(b=>b.classList.toggle('active',b.dataset.symmetry===state.symmetry))}
-  function renderAll(){renderCanvas();renderPalette();renderSelection();renderHistory();renderBrushControls();updateStatus();applyTransform()}
+  function updateStatus(){const tool=currentTool(),label=tool==='fill'?(fillMode==='selection'?'选区填充':'邻接填充'):{pen:'画笔',eraser:'橡皮',eyedropper:'取色',shape:activeShape().label,select:'选区'}[tool]||tool;$('#statusTool').textContent=label;const c=paletteColor(state.currentId)||candidate||DEFAULT_COLOR;$('#statusColor i').style.backgroundColor=c;$('#statusColor b').textContent=c.toUpperCase();$('#zoomValue').textContent=`${Math.round(zoom*100)}%`;$$('.tool').forEach(b=>b.classList.toggle('active',toolButtonActive(b)));$$('[data-symmetry]').forEach(b=>b.classList.toggle('active',b.dataset.symmetry===state.symmetry))}
+  function renderAll(){renderCanvas();renderPalette();renderSelection();renderHistory();renderBrushControls();renderShapeControls();updateStatus();applyTransform()}
 
   function updateTransparencyMask(){const w=dom.viewport.clientWidth,h=dom.viewport.clientHeight,size=ART_SIZE*zoom,left=w/2+panX-size/2,top=h/2+panY-size/2,clipLeft=clamp(left,0,w),clipTop=clamp(top,0,h),clipRight=clamp(w-left-size,0,w),clipBottom=clamp(h-top-size,0,h);dom.pattern.style.clipPath=`inset(${clipTop}px ${clipRight}px ${clipBottom}px ${clipLeft}px)`}
   function applyTransform(){dom.transform.style.transform=`translate(${panX-ART_SIZE*zoom/2}px,${panY-ART_SIZE*zoom/2}px) scale(${zoom})`;updateTransparencyMask();updateStatus()}
@@ -280,6 +281,11 @@
   function rectPoints(a,b,hollow=false){const out=[];for(let y=Math.min(a.y,b.y);y<=Math.max(a.y,b.y);y++)for(let x=Math.min(a.x,b.x);x<=Math.max(a.x,b.x);x++)if(!hollow||x===Math.min(a.x,b.x)||x===Math.max(a.x,b.x)||y===Math.min(a.y,b.y)||y===Math.max(a.y,b.y))out.push({x,y});return out}
   function circlePoints(a,b,hollow=false){const out=[],r=Math.hypot(b.x-a.x,b.y-a.y),rsq=r*r;for(let y=Math.ceil(-r);y<=Math.floor(r);y++)for(let x=Math.ceil(-r);x<=Math.floor(r);x++){const d=x*x+y*y;if((!hollow&&d<=rsq)||(hollow&&Math.abs(d-rsq)<=Math.max(1,r)))out.push({x:a.x+x,y:a.y+y})}return out}
   function shapePoints(tool,a,b,hollow=false){if(tool==='line')return linePoints(a.x,a.y,b.x,b.y);if(tool==='rect')return rectPoints(a,b,hollow);if(tool==='circle')return circlePoints(a,b,hollow);return[]}
+  // 图形工具的五种二级图形：实心/空心矩形、实心/空心圆形、直线
+  const SHAPES={rect:{tool:'rect',hollow:false,label:'矩形'},rectHollow:{tool:'rect',hollow:true,label:'空心矩形'},circle:{tool:'circle',hollow:false,label:'圆形'},circleHollow:{tool:'circle',hollow:true,label:'空心圆形'},line:{tool:'line',hollow:false,label:'直线'}};
+  const normalizeShapeKey=value=>SHAPES[value]?value:'rect';
+  const activeShape=()=>SHAPES[normalizeShapeKey(state.shape)];
+  const shapeSpec=session=>SHAPES[normalizeShapeKey((session&&session.shape)||state.shape)];
   const brushOffsetCache=new Map();
   function brushOffsets(){const {shape,radius}=brushSettings(),key=`${shape}:${radius}`;if(brushOffsetCache.has(key))return brushOffsetCache.get(key);const offsets=[];for(let y=-radius;y<=radius;y++)for(let x=-radius;x<=radius;x++)if(shape==='square'||x*x+y*y<=radius*radius)offsets.push({x,y});brushOffsetCache.set(key,offsets);return offsets}
   function paintPoint(x,y,id=state.currentId,useBrush=false){const offsets=useBrush?brushOffsets():[{x:0,y:0}],seen=new Set();symmetryPoints(x,y).forEach(center=>offsets.forEach(offset=>{const px=center.x+offset.x,py=center.y+offset.y,key=`${px},${py}`;if(px>=0&&py>=0&&px<SIZE&&py<SIZE&&!seen.has(key)&&pixelEditable(px,py)){seen.add(key);state.pixels[indexOf(px,py)]=id}}))}
@@ -292,10 +298,10 @@
   function pointerDown(e){
     pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});dom.viewport.setPointerCapture?.(e.pointerId);
     if(e.button===2){e.preventDefault();suppressCanvasMenu=true;panSession={x:e.clientX,y:e.clientY,panX,panY};return}
-    if(e.pointerType==='touch'&&pointers.size===2){if(drawSession){if(['line','rect','circle'].includes(drawSession.tool)){drawSession=null;dom.preview.innerHTML='';updateDrawingCursor()}else finishDraw(e,drawSession.last)}const p=[...pointers.values()],cx=(p[0].x+p[1].x)/2,cy=(p[0].y+p[1].y)/2;pinchSession={dist:Math.max(1,Math.hypot(p[1].x-p[0].x,p[1].y-p[0].y)),zoom,cx,cy,panX,panY};return}
+    if(e.pointerType==='touch'&&pointers.size===2){if(drawSession){if(['shape','line','rect','circle'].includes(drawSession.tool)){drawSession=null;dom.preview.innerHTML='';updateDrawingCursor()}else finishDraw(e,drawSession.last)}const p=[...pointers.values()],cx=(p[0].x+p[1].x)/2,cy=(p[0].y+p[1].y)/2;pinchSession={dist:Math.max(1,Math.hypot(p[1].x-p[0].x,p[1].y-p[0].y)),zoom,cx,cy,panX,panY};return}
     if(e.button!==0||!e.target.closest('#canvas'))return;const pos=canvasPos(e);if(!pos)return;
     if(paste){drawSession={kind:'paste',start:pos,last:pos,originX:paste.x,originY:paste.y};return}
-    const tool=e.altKey?'eyedropper':currentTool();if(['pen','fill','line','rect','circle'].includes(tool))prepareCandidateForDrawing();drawSession={start:pos,last:pos,end:pos,shift:e.shiftKey,tool};
+    const tool=e.altKey?'eyedropper':currentTool();if(['pen','fill','shape'].includes(tool))prepareCandidateForDrawing();drawSession={start:pos,last:pos,end:pos,shift:e.shiftKey,tool,shape:state.shape};
     if(tool==='pen'||tool==='eraser'){const connect=tool==='pen'&&e.shiftKey&&lastPenEnd;beginAction(connect?'连接上一笔':tool==='pen'?'绘画像素':'擦除像素');if(connect)paintLine(lastPenEnd,pos,state.currentId);else{paintPoint(pos.x,pos.y,tool==='eraser'?null:state.currentId,true);renderCanvas()}}
     else if(tool==='fill'){beginAction(fillMode==='selection'?(selection.size?'填充选区':'填充画布'):'邻接填充');if(fillMode==='selection'){if(selection.size)selection.forEach(i=>state.pixels[i]=state.currentId);else state.pixels.fill(state.currentId)}else flood(pos.x,pos.y,state.currentId);renderCanvas();commitAction();drawSession=null}
     else if(tool==='eyedropper'){const id=state.pixels[indexOf(pos.x,pos.y)];if(id)selectEditingColor(id);drawSession=null}
@@ -313,14 +319,14 @@
     if(!drawSession)return;if(!pos){if(drawSession.tool==='pen'||drawSession.tool==='eraser')drawSession.last=null;return}
     if(drawSession.kind==='paste'){paste.x=clamp(drawSession.originX+pos.x-drawSession.start.x,-paste.w+1,SIZE-1);paste.y=clamp(drawSession.originY+pos.y-drawSession.start.y,-paste.h+1,SIZE-1);renderSelection();return}
     if(drawSession.tool==='pen'||drawSession.tool==='eraser'){const id=drawSession.tool==='eraser'?null:state.currentId;if(drawSession.last)paintLine(drawSession.last,pos,id);else{paintPoint(pos.x,pos.y,id,true);renderCanvas()}drawSession.last=pos;drawSession.end=pos}
-    else if(['line','rect','circle'].includes(drawSession.tool))renderPreview(shapePoints(drawSession.tool,drawSession.start,pos,e.shiftKey));
+    else if(['shape','line','rect','circle'].includes(drawSession.tool)){const spec=shapeSpec(drawSession);renderPreview(shapePoints(spec.tool,drawSession.start,pos,spec.hollow!==e.shiftKey))}
     else if(drawSession.tool==='select'){
       if(['byColor','wand'].includes(selectionMode())){/* 魔棒/同色选择为单击即选，拖动不改变选区 */}
       else if(selectionMode()==='free'){selection.add(indexOf(pos.x,pos.y))}else{selection.clear();rectPoints(drawSession.start,pos).forEach(p=>selection.add(indexOf(p.x,p.y)))}renderSelection()
     }
   }
   function finishDraw(e,position=null){
-    const pos=position||canvasPos(e)||drawSession?.end||drawSession?.last;if(drawSession&&!drawSession.kind){const tool=drawSession.tool;if(pos&&['line','rect','circle'].includes(tool)){beginAction(`绘制${{line:'直线',rect:'矩形',circle:'圆形'}[tool]}`);shapePoints(tool,drawSession.start,pos,e.shiftKey).forEach(p=>paintPoint(p.x,p.y));renderCanvas();dom.preview.innerHTML='';commitAction()}else if(tool==='pen'||tool==='eraser'){if(tool==='pen'&&pos)lastPenEnd={...pos};commitAction()}}drawSession=null;updateDrawingCursor()
+    const pos=position||canvasPos(e)||drawSession?.end||drawSession?.last;if(drawSession&&!drawSession.kind){const tool=drawSession.tool;if(pos&&['shape','line','rect','circle'].includes(tool)){const spec=shapeSpec(drawSession);beginAction(`绘制${spec.label}`);shapePoints(spec.tool,drawSession.start,pos,spec.hollow!==e.shiftKey).forEach(p=>paintPoint(p.x,p.y));renderCanvas();dom.preview.innerHTML='';commitAction()}else if(tool==='pen'||tool==='eraser'){if(tool==='pen'&&pos)lastPenEnd={...pos};commitAction()}}drawSession=null;updateDrawingCursor()
   }
   function pointerUp(e){finishDraw(e);pointers.delete(e.pointerId);if(e.button===2){panSession=null;setTimeout(()=>suppressCanvasMenu=false,0)}if(pointers.size<2)pinchSession=null}
   function selectionMode(){return $('[data-select-mode].active')?.dataset.selectMode||'rect'}
@@ -355,7 +361,7 @@
   function selectionAction(action){if(action==='copy')copySelection();if(action==='cut')cutSelection();if(action==='move')cutSelection(true);if(action==='paste')beginPaste();if(action==='place')placePaste();if(action==='clear'){if(pendingAction?.label==='移动选区')cancelAction();selection.clear();paste=null;renderSelection()}}
 
   function openPanel(id,forceOpen=false){const same=activePanel===id&&dom.optionDock.classList.contains('open');activePanel=forceOpen?id:(same?null:id);dom.optionDock.classList.toggle('open',!!activePanel);$$('.option-panel').forEach(p=>p.classList.toggle('active',p.id===activePanel));$$('.tool[data-panel]').forEach(b=>b.classList.toggle('active',toolButtonActive(b)))}
-  function setTool(tool){if(pendingAction?.label==='移动选区'&&tool!==state.tool){cancelAction();paste=null}if(tool!=='pen')lastPenEnd=null;state.tool=tool;if(tool!=='select'&&activePanel==='selectionPanel')openPanel('selectionPanel');if(tool!=='fill'&&activePanel==='fillPanel')openPanel('fillPanel');if(!['pen','eraser'].includes(tool)&&activePanel==='brushPanel')openPanel('brushPanel');renderBrushControls();updateStatus();console.info(`[Pixel Atelier] tool:selected ${tool}`)}
+  function setTool(tool){if(pendingAction?.label==='移动选区'&&tool!==state.tool){cancelAction();paste=null}if(tool!=='pen')lastPenEnd=null;state.tool=tool;if(tool!=='select'&&activePanel==='selectionPanel')openPanel('selectionPanel');if(tool!=='fill'&&activePanel==='fillPanel')openPanel('fillPanel');if(tool!=='shape'&&activePanel==='shapePanel')openPanel('shapePanel');if(!['pen','eraser'].includes(tool)&&activePanel==='brushPanel')openPanel('brushPanel');renderBrushControls();renderShapeControls();updateStatus();console.info(`[Pixel Atelier] tool:selected ${tool}`)}
 
   function nearestConflict(hex,excludeId=null){const lab=colorLab(hex);let best=null;state.palette.forEach(c=>{if(c.id===excludeId)return;const d=deltaE00(lab,colorLab(c.color));if(!best||d<best.distance)best={entry:c,distance:d}});return best}
   function validCandidate(hex,excludeId=null){const conflict=nearestConflict(hex,excludeId);return {valid:!conflict||conflict.distance>=state.minDeltaE,conflict}}
@@ -698,7 +704,7 @@
     $$('[data-symmetry]').forEach(btn=>btn.onclick=()=>{beginAction('切换对称模式');state.symmetry=state.symmetry===btn.dataset.symmetry?'none':btn.dataset.symmetry;commitAction();updateStatus()});
     $$('[data-select-mode]').forEach(btn=>btn.onclick=()=>{$$('[data-select-mode]').forEach(b=>b.classList.remove('active'));btn.classList.add('active');setTool('select')});
     $$('[data-fill-mode]').forEach(btn=>btn.onclick=()=>{fillMode=btn.dataset.fillMode;$$('[data-fill-mode]').forEach(b=>b.classList.toggle('active',b===btn));setTool('fill');updateStatus()});
-    $$('[data-brush-shape]').forEach(btn=>btn.onclick=()=>{state[`${activeBrushTool()}BrushShape`]=btn.dataset.brushShape;renderBrushControls();saveLocal()});$('#brushRadius').oninput=e=>{state[`${activeBrushTool()}BrushRadius`]=clamp(Math.round(+e.target.value||0),0,8);renderBrushControls();saveLocal()};
+    $$('[data-brush-shape]').forEach(btn=>btn.onclick=()=>{state[`${activeBrushTool()}BrushShape`]=btn.dataset.brushShape;renderBrushControls();saveLocal()});$$('[data-shape]').forEach(btn=>btn.onclick=()=>{state.shape=normalizeShapeKey(btn.dataset.shape);renderShapeControls();setTool('shape');saveLocal()});$('#brushRadius').oninput=e=>{state[`${activeBrushTool()}BrushRadius`]=clamp(Math.round(+e.target.value||0),0,8);renderBrushControls();saveLocal()};
     $$('[data-selection-action]').forEach(btn=>btn.onclick=()=>selectionAction(btn.dataset.selectionAction));
     $('#undo').onclick=undo;$('#redo').onclick=redo;$('#zoomIn').onclick=()=>setZoom(zoom+.25);$('#zoomOut').onclick=()=>setZoom(zoom-.25);$('#resetView').onclick=resetView;
     $('#toggleGrid').onclick=()=>{beginAction(state.grid?'隐藏网格':'显示网格');state.grid=!state.grid;commitAction();renderCanvas()};
