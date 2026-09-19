@@ -17,7 +17,7 @@
       <button class="tool" data-action="files" data-panel="filesPanel" title="导入导出"><i>⇅</i><span>文件</span></button>
       <button class="tool active" data-tool="pen" data-panel="brushPanel" title="画笔 B · Shift 点击连接上一笔终点"><i>✎</i><span>画笔</span></button>
       <button class="tool" data-tool="eraser" data-panel="brushPanel" title="橡皮 E"><i>◇</i><span>橡皮</span></button>
-      <button class="tool" data-tool="eyedropper" title="取色 Alt"><i>⌁</i><span>取色</span></button>
+      <button class="tool" data-tool="eyedropper" title="取色 Alt（点击画布取色，无二级面板）"><i>⌁</i><span>取色</span></button>
       <button class="tool" data-tool="fill" data-panel="fillPanel" title="填充 F"><i>◒</i><span>填充</span></button>
       <button class="tool" data-tool="shape" data-panel="shapePanel" title="图形：矩形 / 空心矩形 / 圆形 / 空心圆形 / 直线"><i>▣</i><span>图形</span></button>
       <button class="tool" data-tool="select" data-panel="selectionPanel" title="选区 M"><i>▭</i><span>选区</span></button>
@@ -105,7 +105,7 @@
           <div id="candidatePreview" class="candidate-preview"><span style="background:#808080"></span><div><small>候选颜色</small><b>#808080</b></div></div>
           <div id="colorValidation" class="validation ok">可添加到调色板</div>
           <div class="color-actions"><button id="updateSelectedColor" type="button" class="accent" title="也可在色图上按 Alt 单击">更新选中颜色</button><button id="deleteSelectedColor" type="button" class="danger" disabled>删除选中颜色</button><button id="addCandidateColor" type="button" class="quiet add-color-action" title="也可在色图上按 Shift 单击">添加新颜色到调色板</button><button id="setBackgroundColor" type="button" class="quiet background-color-action" title="把当前候选颜色设为画布背景色（导出时填充透明像素）">设置为背景色</button></div>
-          <h3>调色板 <span id="studioPaletteCount">0 / 16</span><label class="color-limit-inline" title="颜色数量上限：可调 1–16，不能低于现有颜色数">上限 <input id="maxColors" type="number" min="1" max="16" step="1" value="16" inputmode="numeric"></label><button id="normalizeSmallColors" type="button" class="quiet palette-clear" disabled title="把所有不足最少格数的颜色并入相邻或最接近的颜色，可撤销">整理</button><button id="clearPalette" type="button" class="danger palette-clear" disabled>清空</button></h3><div id="studioPalette" class="studio-palette" aria-label="颜色列表"></div><label class="delta-rule-control">最小色差 <input id="minDeltaE" type="number" min="8" step="0.1" value="12" inputmode="decimal"><small>内置下限 8</small></label><label class="delta-rule-control">最少色块 <input id="minColorPixels" type="number" min="16" max="2304" step="1" value="16" inputmode="numeric"><small>格 · 内置下限 16</small></label><p id="palettePixelNotice" class="rule-notice" hidden></p>
+          <h3>调色板 <span id="studioPaletteCount">0 / 16</span><label class="color-limit-inline" title="颜色数量上限：可调 1–16，不能低于现有颜色数">上限 <input id="maxColors" type="number" min="1" max="16" step="1" value="16" inputmode="numeric"></label><button id="normalizeSmallColors" type="button" class="quiet palette-clear" disabled title="把所有不足最少格数的颜色并入相邻或最接近的颜色，可撤销">整理</button><button id="clearPalette" type="button" class="danger palette-clear" disabled title="删除调色板所有颜色，画布像素同时变为透明，可撤销">清空色板</button></h3><div id="studioPalette" class="studio-palette" aria-label="颜色列表"></div><label class="delta-rule-control">最小色差 <input id="minDeltaE" type="number" min="8" step="0.1" value="12" inputmode="decimal"><small>内置下限 8</small></label><label class="delta-rule-control">最少色块 <input id="minColorPixels" type="number" min="16" max="2304" step="1" value="16" inputmode="numeric"><small>格 · 内置下限 16</small></label><p id="palettePixelNotice" class="rule-notice" hidden></p>
           <p class="studio-tip">拖动选色点只预览；Shift + 单击添加新颜色，Alt + 单击更新选中颜色。调色板颜色可点击编辑、长按或拖动排序，颜色之间色差至少 <span id="paletteDeltaRule">12</span>；同一颜色在画布上的格子数不能少于 <span id="palettePixelRule">16</span> 格（内置下限 16），导入图片或配置时会自动合并过小色块。</p>
         </section>
       </div>
@@ -151,9 +151,9 @@
       <article class="tutorial-page active">
         <h3>1 · 基础绘制</h3>
         <ul>
-          <li>顶部选「画笔」或「橡皮」，在二级面板里切换圆形 / 方形笔尖与 `0～8 px` 半径。</li>
+          <li>顶部选「画笔」或「橡皮」，在二级面板里切换圆形 / 方形笔尖与 0～8 px 半径。</li>
           <li>画笔完成一笔后，按住 <b>Shift</b> 点击可从上一笔终点继续画直线。</li>
-          <li>按住 <b>Alt</b> 临时取色；快捷键：<b>B</b> 画笔、<b>E</b> 橡皮、<b>F</b> 填充、<b>M</b> 选区、<b>G</b> 网格。</li>
+          <li>按住 <b>Alt</b> 在画布上临时取色（与导出时的 Alt 无关）；快捷键：<b>B</b> 画笔、<b>E</b> 橡皮、<b>F</b> 填充、<b>M</b> 选区、<b>G</b> 网格。</li>
           <li>填充工具支持「邻接填充」与「选区填充」。</li>
         </ul>
       </article>
@@ -161,7 +161,7 @@
         <h3>2 · 图形工具</h3>
         <ul>
           <li>点击工具栏的「图形」，在二级面板选择 <b>矩形 / 空心矩形 / 圆形 / 空心圆形 / 直线</b>。</li>
-          <li>按住 <b>Shift</b> 拖动可临时反转空心 / 实心（画矩形时自动变成空心）。</li>
+          <li>按住 <b>Shift</b> 拖动可临时反转空心 / 实心（例如实心矩形会变成空心矩形）。</li>
           <li>绘制的图形沿用当前颜色、笔刷规则与对称设置。</li>
         </ul>
       </article>
@@ -171,6 +171,7 @@
           <li>右侧颜色工作室有 <b>色相环 / Lab 色域 / 通道</b> 三种视图，随时切换。</li>
           <li>拖动选点实时预览；<b>Shift + 单击</b>把候选色加入调色板，<b>Alt + 单击</b>更新选中颜色。</li>
           <li>「最小色差」限制任意两色的 ΔE00；「颜色上限」控制最多可用颜色数；「最少色块」保证每种颜色占够格子数，不满足时可用「整理」自动合并。</li>
+          <li>「清空色板」会删除调色板所有颜色和画布上的色块（需二次确认，可撤销）。</li>
         </ul>
       </article>
       <article class="tutorial-page">
@@ -186,7 +187,7 @@
         <ul>
           <li><b>G</b> 或「网格」切换网格（含中心十字，导入图片预览同步显示）。</li>
           <li>滚轮按 10% 步进缩放，20%～800%；右键拖动画布平移，触屏用双指缩放与移动。</li>
-          <li>「重置视角」让画布居中铺满；「清空」会二次确认后清空整幅画面。</li>
+          <li>「重置视角」让画布居中铺满；「清空」会二次确认后清空整幅画面（与调色板的「清空色板」是两个不同按钮）。</li>
         </ul>
       </article>
       <article class="tutorial-page">
@@ -194,7 +195,7 @@
         <ul>
           <li>「导入图片」可定位、缩放图片并实时预览量化结果（默认使用「颜色偏移恢复」）。</li>
           <li>「从文本导入」可粘贴「导出文本」生成的纯文本，或 `floor_patterns` 配置，还原画面。</li>
-          <li>「导出 PNG」默认 1×（按住 Alt 为 16×），输出索引色 PNG；导出后可点「跳转提交」打开提交地址。</li>
+          <li>「导出 PNG」默认 1×（按住 Alt 为 16×），输出索引色 PNG；这里的 Alt 与画布上按住 Alt 取色互不影响；导出后可点「跳转提交」打开提交地址。</li>
           <li>画面会自动保存到本地，<b>Ctrl/Cmd + Z</b> 撤销、<b>Ctrl/Cmd + Y</b> 重做。</li>
         </ul>
       </article>
