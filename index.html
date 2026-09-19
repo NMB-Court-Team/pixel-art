@@ -7,7 +7,7 @@
   <meta name="description" content="支持感知色差调色板的 48×48 像素画编辑器">
   <title>Pixel Atelier · 像素画工作台</title>
   <link rel="icon" href="assets/icon.png" type="image/png">
-  <link rel="stylesheet" href="css/global.css?v=20260905-23">
+  <link rel="stylesheet" href="css/global.css?v=20260905-24">
   <style>.topbar{grid-template-columns:minmax(0,1fr) auto}.stage-head{justify-content:flex-end}@media(max-width:900px){.topbar{grid-template-columns:minmax(0,1fr) auto}}@media(max-width:600px){.stage-head>div:first-child{display:flex}}</style>
 </head>
 <body class="dark-theme">
@@ -115,7 +115,7 @@
 <dialog id="importDialog" class="studio-dialog">
   <form method="dialog" class="dialog-frame import-studio">
     <header><div><span class="eyebrow">IMAGE QUANTIZATION</span><h2>定位并转换图片</h2></div><button class="close-btn" value="close">×</button></header>
-    <div class="import-layout"><div class="import-preview-wrap"><canvas id="importPreview" width="450" height="450"></canvas><p id="importPreviewHint">拖动图片调整位置，滚轮或滑块缩放</p></div>
+    <div class="import-layout"><div class="import-preview-wrap"><canvas id="importPreview" width="450" height="450"></canvas><p id="importPreviewHint">拖动图片调整位置，滚轮 / 滑块 / 双指缩放</p></div>
       <aside><label>缩放 <input id="importScale" type="range" min="10" max="500" value="100"><output>100%</output></label><button id="fitImport" type="button" class="quiet wide">适应画布</button><button id="toggleImportPreview" type="button" class="quiet wide" aria-pressed="false">开启预览</button><label class="import-min-delta">颜色最小色差 <input id="importMinDeltaE" type="number" min="8" step="0.1" value="12" inputmode="decimal"><small>与工作台同步</small></label><label class="import-min-delta">颜色最少色块 <input id="importMinColorPixels" type="number" min="16" max="2304" step="1" value="16" inputmode="numeric"><small>格 · 下限 16 · 同步</small></label><div class="import-limit-row"><label class="import-max-colors">颜色数量上限 <input id="importMaxColors" type="number" min="1" max="16" step="1" value="16" inputmode="numeric"><small>与工作台同步</small></label><button id="importClearPalette" type="button" class="quiet" title="清空主画布调色板颜色（需二次确认），便于之后把上限调低">清空颜色</button></div><label class="import-algorithm-select">处理方法 <select id="importAlgorithm"><option value="shift" selected>颜色偏移恢复</option><option value="none">无偏差</option><option value="contrast">增强对比度</option><option value="balanced">区域感知均衡</option></select></label><label class="import-algorithm-option" data-algorithms="shift balanced" hidden>允许偏移色差 <input id="importColorOffset" type="range" min="0" max="20" step="0.5" value="8"><output>8</output></label><label class="import-algorithm-option" data-algorithms="contrast balanced" hidden>目标邻接色差 <input id="importContrastTarget" type="range" min="8" max="30" step="0.5" value="12"><output>12</output></label><label class="import-algorithm-option" data-algorithms="contrast balanced" hidden>对比增强强度 <input id="importContrastStrength" type="range" min="0" max="100" step="5" value="65"><output>65%</output></label><label class="import-algorithm-option" data-algorithms="contrast balanced" hidden>区域识别阈值 <input id="importRegionThreshold" type="range" min="0.5" max="12" step="0.5" value="3"><output>3</output></label><div id="importAlgorithmNote" class="import-note">使用感知色差量化，不主动移动颜色或改变区域关系。</div><button id="confirmImport" type="button" class="accent wide">生成像素画</button></aside>
     </div>
   </form>
@@ -197,6 +197,6 @@
 </dialog>
 
 <script src="js/png-indexed.js?v=20260905-14"></script>
-<script src="js/app.js?v=20260905-23"></script>
+<script src="js/app.js?v=20260905-24"></script>
 </body>
 </html>

@@ -144,6 +144,8 @@ body.dark-theme{--bg:#0e1115;--surface:#15191e;--raised:#1a1f25;--soft:#232930;-
 .tutorial-page h4{margin:10px 0 6px;font-size:12px}
 .tutorial-page code{padding:1px 4px;border-radius:4px;background:var(--soft);color:var(--ink);font:650 11px/1.5 ui-monospace,monospace}
 .tutorial-page a{color:var(--accent)}
+/* 导入预览画布：接管触摸手势，支持双指捏合缩放（否则浏览器会把捏合当成页面缩放） */
+#importPreview{touch-action:none;cursor:crosshair;-webkit-user-select:none;user-select:none}
 .tutorial-page b{color:var(--ink)}
 .tutorial-actions{display:flex;align-items:center;gap:8px;margin-top:18px}
 .tutorial-progress{margin:0 auto;color:var(--muted);font:650 11px/1 ui-monospace,monospace}
