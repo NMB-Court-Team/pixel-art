@@ -25,10 +25,12 @@ body.dark-theme{--bg:#0e1115;--surface:#15191e;--raised:#1a1f25;--soft:#232930;-
 .rule-notice{grid-column:1/-1;margin:8px 0 0;padding:7px 9px;border:1px solid color-mix(in srgb,var(--danger) 40%,var(--line));border-radius:8px;background:color-mix(in srgb,var(--danger) 8%,var(--soft));color:var(--danger);font-size:10px;line-height:1.5}
 .studio-swatch .swatch-pixels{position:absolute;right:3px;bottom:2px;font:600 8px/1 ui-monospace,monospace;opacity:.8;pointer-events:none}
 .studio-swatch.under-min{box-shadow:inset 0 0 0 2px var(--danger)}
+.studio-swatch.background{outline:2px solid var(--accent);outline-offset:2px}
+.studio-swatch.background::after{content:'B';position:absolute;left:3px;top:2px;font:800 8px/1 ui-monospace,monospace;color:#fff;text-shadow:0 1px 3px #000}
 .studio-swatch.under-min .swatch-pixels{opacity:1}
 @media(max-width:980px),(max-aspect-ratio:6/5){.color-sidebar .color-map-stack{width:min(100%,308px)}.color-sidebar .wheel-map-stack{width:min(100%,220px)}.color-sidebar .color-map-stack canvas{max-height:none}}
 @media(max-width:600px){.color-sidebar .color-map-stack{width:min(100%,266px)}.color-sidebar .wheel-map-stack{width:min(100%,190px)}}
-.color-actions{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px}.color-actions button{min-width:0;padding-inline:9px}.color-actions .add-color-action{grid-column:1/-1;width:100%}.color-inspector>.color-actions{grid-column:1/-1}
+.color-actions{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px}.color-actions button{min-width:0;padding-inline:9px}.color-actions .add-color-action{grid-column:1/-1;width:100%}.color-actions .background-color-action{grid-column:1/-1;width:100%}.color-inspector>.color-actions{grid-column:1/-1}
 .color-inspector h3{gap:7px}.color-inspector h3 #studioPaletteCount{margin-left:auto}.color-inspector h3 .palette-clear{width:auto;min-height:0;padding:4px 8px;border-radius:6px;font-size:9px;line-height:1.1}
 .color-inspector h3 #normalizeSmallColors:disabled{opacity:.45;cursor:not-allowed}
 .brush-radius-control{display:flex;align-items:center;gap:8px;padding:0 10px;color:var(--muted);font-size:10px;white-space:nowrap}.brush-radius-control input{width:140px;accent-color:var(--accent)}.brush-radius-control output{min-width:30px;color:var(--ink);font:650 10px/1 ui-monospace,monospace}
@@ -156,3 +158,6 @@ body.dark-theme{--bg:#0e1115;--surface:#15191e;--raised:#1a1f25;--soft:#232930;-
 .tutorial-edit:hover{background:var(--soft);transform:translateY(-1px)}
 /* 工具栏里的链接型工具（汇报问题）：沿用 .tool 外观，去掉下划线 */
 .tool-link{text-decoration:none;cursor:pointer}
+/* 导出纯文本弹窗 */
+.text-dialog{width:min(660px,100%)}
+.text-dialog textarea{width:100%;min-height:180px;max-height:44dvh;margin-top:10px;padding:13px;border:1px solid var(--line);border-radius:10px;background:var(--soft);color:var(--ink);font:10px/1.55 ui-monospace,monospace;word-break:break-all;resize:vertical}

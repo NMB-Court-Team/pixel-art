@@ -7,7 +7,7 @@
   <meta name="description" content="支持感知色差调色板的 48×48 像素画编辑器">
   <title>像素画工作台</title>
   <link rel="icon" href="assets/icon.png" type="image/png">
-  <link rel="stylesheet" href="css/global.css?v=20260905-27">
+  <link rel="stylesheet" href="css/global.css?v=20260905-32">
   <style>.topbar{grid-template-columns:minmax(0,1fr) auto}.stage-head{justify-content:flex-end}@media(max-width:900px){.topbar{grid-template-columns:minmax(0,1fr) auto}}@media(max-width:600px){.stage-head>div:first-child{display:flex}}</style>
 </head>
 <body class="dark-theme">
@@ -60,8 +60,8 @@
     </div>
     <div id="historyPanel" class="option-panel history-panel"><span class="panel-label">变动记录</span><div id="historyList" class="history-list"></div></div>
     <div id="filesPanel" class="option-panel">
-      <span class="panel-label">文件</span><button id="importImage">导入图片</button><button id="exportPng" class="accent" title="导出 1× PNG 并可自定义文件名；按住 Alt 导出 16×">导出 PNG</button><button id="submitWork" class="quiet" title="打开作品提交地址（链接待替换）">跳转提交</button>
-      <button id="exportData">复制项目数据</button><button id="importData">导入项目数据</button><button id="importConfig">从配置导入</button>
+      <span class="panel-label">文件</span><button id="importImage">导入图片</button><button id="exportPng" class="accent" title="导出 1× PNG 并可自定义文件名；按住 Alt 导出 16×">导出 PNG</button><button id="exportText" class="quiet" title="导出纯文本格式">导出文本</button><button id="submitWork" class="quiet" title="打开作品提交地址（链接待替换）">跳转提交</button>
+      <button id="exportData">复制项目数据</button><button id="importData">导入项目数据</button><button id="importConfig">从文本导入</button>
     </div>
   </section>
 
@@ -69,6 +69,7 @@
     <section class="stage-head">
       <div class="view-controls">
         <button id="tutorialOpen" class="quiet" title="使用教程（首次打开网页会自动显示）">教程</button>
+        <button id="toggleBackground" class="quiet active" title="背景：显示背景色 / 透明网格（不影响导出，导出始终用背景色填充透明像素）">背景</button>
         <button id="toggleGrid" class="quiet" title="网格 G">网格</button>
         <button id="zoomOut" class="icon-btn" title="缩小">−</button><output id="zoomValue">100%</output><button id="zoomIn" class="icon-btn" title="放大">＋</button>
         <button id="resetView" class="quiet">重置视角</button><button id="clearCanvas" class="danger">清空</button>
@@ -103,9 +104,9 @@
         <section class="color-inspector">
           <div id="candidatePreview" class="candidate-preview"><span style="background:#808080"></span><div><small>候选颜色</small><b>#808080</b></div></div>
           <div id="colorValidation" class="validation ok">可添加到调色板</div>
-          <div class="color-actions"><button id="updateSelectedColor" type="button" class="accent" title="也可在色图上按 Alt 单击">更新选中颜色</button><button id="deleteSelectedColor" type="button" class="danger" disabled>删除选中颜色</button><button id="addCandidateColor" type="button" class="quiet add-color-action" title="也可在色图上按 Shift 单击">添加新颜色到调色板</button></div>
+          <div class="color-actions"><button id="updateSelectedColor" type="button" class="accent" title="也可在色图上按 Alt 单击">更新选中颜色</button><button id="deleteSelectedColor" type="button" class="danger" disabled>删除选中颜色</button><button id="addCandidateColor" type="button" class="quiet add-color-action" title="也可在色图上按 Shift 单击">添加新颜色到调色板</button><button id="setBackgroundColor" type="button" class="quiet background-color-action" title="把当前候选颜色设为画布背景色（导出时填充透明像素）">设置为背景色</button></div>
           <h3>调色板 <span id="studioPaletteCount">0 / 16</span><label class="color-limit-inline" title="颜色数量上限：可调 1–16，不能低于现有颜色数">上限 <input id="maxColors" type="number" min="1" max="16" step="1" value="16" inputmode="numeric"></label><button id="normalizeSmallColors" type="button" class="quiet palette-clear" disabled title="把所有不足最少格数的颜色并入相邻或最接近的颜色，可撤销">整理</button><button id="clearPalette" type="button" class="danger palette-clear" disabled>清空</button></h3><div id="studioPalette" class="studio-palette" aria-label="颜色列表"></div><label class="delta-rule-control">最小色差 <input id="minDeltaE" type="number" min="8" step="0.1" value="12" inputmode="decimal"><small>内置下限 8</small></label><label class="delta-rule-control">最少色块 <input id="minColorPixels" type="number" min="16" max="2304" step="1" value="16" inputmode="numeric"><small>格 · 内置下限 16</small></label><p id="palettePixelNotice" class="rule-notice" hidden></p>
-          <p class="studio-tip">拖动色图只预览；Shift + 单击添加新颜色，Alt + 单击更新选中颜色。调色板颜色可点击编辑、长按或拖动排序，颜色之间色差至少 <span id="paletteDeltaRule">12</span>；同一颜色在画布上的格子数不能少于 <span id="palettePixelRule">16</span> 格（内置下限 16），导入图片或配置时会自动合并过小色块。</p>
+          <p class="studio-tip">拖动选色点只预览；Shift + 单击添加新颜色，Alt + 单击更新选中颜色。调色板颜色可点击编辑、长按或拖动排序，颜色之间色差至少 <span id="paletteDeltaRule">12</span>；同一颜色在画布上的格子数不能少于 <span id="palettePixelRule">16</span> 格（内置下限 16），导入图片或配置时会自动合并过小色块。</p>
         </section>
       </div>
     </div>
@@ -122,7 +123,7 @@
   </form>
 </dialog>
 
-<dialog id="configDialog" class="studio-dialog"><form method="dialog" class="dialog-frame config-dialog"><header><div><span class="eyebrow">PATTERN CONFIG</span><h2>从配置导入</h2></div><button class="close-btn" value="close">×</button></header><div class="config-layout"><textarea id="configText" spellcheck="false" placeholder="- name: &quot;stone&quot;&#10;  colors: [&quot;#f3cc25&quot;, &quot;#fa002e&quot;, &quot;#777777&quot;]&#10;  pattern: '111111111111111111111111111111111111111111111_1111…'"></textarea><aside class="config-side"><canvas id="configPreview" width="225" height="225"></canvas><p id="configStatus" class="config-status">粘贴 floor_patterns 配置后自动预览</p><div id="configError" class="config-error" hidden></div><button id="confirmConfigImport" type="button" class="accent wide" disabled>导入到画布</button></aside></div></form></dialog>
+<dialog id="configDialog" class="studio-dialog"><form method="dialog" class="dialog-frame config-dialog"><header><div><span class="eyebrow">IMPORT TEXT</span><h2>从文本导入</h2></div><button class="close-btn" value="close">×</button></header><div class="config-layout"><textarea id="configText" spellcheck="false" placeholder="粘贴「导出文本」生成的纯文本（base64…）&#10;也支持 floor_patterns 配置：&#10;- name: &quot;stone&quot;&#10;  colors: [&quot;#f3cc25&quot;, &quot;#fa002e&quot;, &quot;#777777&quot;]&#10;  pattern: '111111111111111111111111111111111111111111111_1111…'"></textarea><aside class="config-side"><canvas id="configPreview" width="225" height="225"></canvas><p id="configStatus" class="config-status">粘贴纯文本或 floor_patterns 配置后自动预览</p><div id="configError" class="config-error" hidden></div><button id="confirmConfigImport" type="button" class="accent wide" disabled>导入到画布</button></aside></div></form></dialog>
 
 <dialog id="dataDialog" class="studio-dialog"><form method="dialog" class="dialog-frame data-dialog"><header><h2>项目数据</h2><button class="close-btn" value="close">×</button></header><textarea id="projectData" spellcheck="false"></textarea><div class="dialog-actions"><button id="copyProjectData" type="button">复制</button><button id="applyProjectData" type="button" class="accent">导入</button></div></form></dialog>
 
@@ -132,6 +133,15 @@
     <p id="exportHint" class="export-hint"></p>
     <div class="export-actions"><button type="button" class="quiet" data-export-cancel>取消</button><button type="submit" id="confirmExport" class="accent">导出</button></div>
   </form>
+</dialog>
+
+<dialog id="textDialog" class="studio-dialog text-dialog">
+  <div class="dialog-frame">
+    <header><div><span class="eyebrow">EXPORT TEXT</span><h2>导出纯文本</h2></div><button type="button" class="close-btn" data-text-cancel title="关闭">×</button></header>
+    <p id="exportTextHint" class="export-hint"></p>
+    <textarea id="exportTextData" readonly spellcheck="false" autocomplete="off"></textarea>
+    <div class="dialog-actions"><button type="button" class="quiet" data-text-cancel>关闭</button><button type="button" id="copyExportText" class="accent">复制</button></div>
+  </div>
 </dialog>
 
 <dialog id="tutorialDialog" class="studio-dialog tutorial-dialog">
@@ -183,7 +193,7 @@
         <h3>6 · 导入与导出</h3>
         <ul>
           <li>「导入图片」可定位、缩放图片并实时预览量化结果（默认使用「颜色偏移恢复」）。</li>
-          <li>「从配置导入」可粘贴 `floor_patterns` 配置还原画面。</li>
+          <li>「从文本导入」可粘贴「导出文本」生成的纯文本，或 `floor_patterns` 配置，还原画面。</li>
           <li>「导出 PNG」默认 1×（按住 Alt 为 16×），输出索引色 PNG；导出后可点「跳转提交」打开提交地址。</li>
           <li>画面会自动保存到本地，<b>Ctrl/Cmd + Z</b> 撤销、<b>Ctrl/Cmd + Y</b> 重做。</li>
         </ul>
@@ -198,6 +208,6 @@
 </dialog>
 
 <script src="js/png-indexed.js?v=20260905-14"></script>
-<script src="js/app.js?v=20260905-27"></script>
+<script src="js/app.js?v=20260905-32"></script>
 </body>
 </html>

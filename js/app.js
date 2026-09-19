@@ -10,7 +10,7 @@
   const DEFAULT_MIN_DELTA_E = 12;
   const DEFAULT_COLOR = '#808080';
   const STORAGE_KEY = 'pixelAtelier:state:v3';
-  const APP_VERSION = '2.6.8';
+  const APP_VERSION = '2.8.2';
   const DEFAULT_COLORS = [];
   const MIN_COLORS = 1, MAX_COLORS = 16; // 调色板颜色数量上限：默认 16，可在 1–16 间调整
   // TODO: 替换成实际的提交地址（例如作品投稿表单 / 群组收集页）
@@ -109,7 +109,7 @@
   function renderMarkerLayer(layer,key,markers){if(layer.dataset.key===key)return;layer.dataset.key=key;layer.replaceChildren();markers.forEach(marker=>{const circle=document.createElementNS(SVG_NS,'circle'),label=document.createElementNS(SVG_NS,'text');circle.setAttribute('cx',marker.x);circle.setAttribute('cy',marker.y);circle.setAttribute('r',marker.active?8:6);circle.setAttribute('fill',marker.color);circle.setAttribute('stroke',contrastText(marker.color));circle.classList.add('palette-marker');if(marker.active)circle.classList.add('active');label.setAttribute('x',marker.x);label.setAttribute('y',marker.y);label.setAttribute('fill',contrastText(marker.color));label.classList.add('palette-marker-label');label.textContent=marker.label;layer.append(circle,label)})}
   function updateCandidateMarker(marker,x,y,visible=true){marker.setAttribute('cx',x);marker.setAttribute('cy',y);marker.style.opacity=visible?'1':'0';marker.style.setProperty('--candidate-color',candidate);marker.style.setProperty('--candidate-stroke',candidateIsValid?contrastText(candidate):'#ff3b30')}
 
-  const makeDefaultState=()=>({palette:DEFAULT_COLORS.map((color,i)=>({id:`p${i}`,color})),pixels:Array(SIZE*SIZE).fill(null),currentId:null,tool:'pen',symmetry:'none',grid:false,minDeltaE:DEFAULT_MIN_DELTA_E,maxColors:MAX_COLORS,penBrushShape:'square',penBrushRadius:0,eraserBrushShape:'square',eraserBrushRadius:0,minColorPixels:DEFAULT_MIN_COLOR_PIXELS,shape:'rect'});
+  const makeDefaultState=()=>({palette:DEFAULT_COLORS.map((color,i)=>({id:`p${i}`,color})),pixels:Array(SIZE*SIZE).fill(null),currentId:null,tool:'pen',symmetry:'none',grid:false,minDeltaE:DEFAULT_MIN_DELTA_E,maxColors:MAX_COLORS,penBrushShape:'square',penBrushRadius:0,eraserBrushShape:'square',eraserBrushRadius:0,minColorPixels:DEFAULT_MIN_COLOR_PIXELS,shape:'rect',backgroundColorId:null,backgroundVisible:true});
   let state = makeDefaultState();
   let selection = new Set(), clipboard = null, paste = null;
   let zoom=1, panX=0, panY=0;
@@ -120,12 +120,22 @@
 
   const dom = {
     canvas:$('#canvas'), transform:$('#canvasTransform'), viewport:$('#viewport'), preview:$('#previewLayer'), selection:$('#selectionLayer'),
-    pattern:$('.transparency-pattern'), cancelSelection:$('#cancelCanvasSelection'), optionDock:$('#optionDock'), historyList:$('#historyList'), colorDialog:$('#colorDialog'), importDialog:$('#importDialog'), configDialog:$('#configDialog'), exportDialog:$('#exportDialog'), tutorialDialog:$('#tutorialDialog')
+    pattern:$('.transparency-pattern'), cancelSelection:$('#cancelCanvasSelection'), optionDock:$('#optionDock'), historyList:$('#historyList'), colorDialog:$('#colorDialog'), importDialog:$('#importDialog'), configDialog:$('#configDialog'), exportDialog:$('#exportDialog'), tutorialDialog:$('#tutorialDialog'), textDialog:$('#textDialog')
   };
 
   function paletteColor(id){return state.palette.find(c=>c.id===id)?.color||null}
+  // ---------------- 背景色：绑定在调色板颜色上；导出时用它填充透明像素 ----------------
+  // 背景色本身不是画布像素，但它的“格数” = 画该色的格子 + 所有透明格（导出时这些格子都会是该色）
+  const backgroundHex=()=>paletteColor(state.backgroundColorId);
+  // 「设置为背景色」作用的目标：优先当前选中的调色板颜色，其次与候选色相同的调色板颜色
+  function backgroundTargetId(){if(editingId&&paletteColor(editingId))return editingId;const found=state.palette.find(entry=>entry.color===(candidate||'').toLowerCase());return found?found.id:null}
+  function transparentCount(pixels=state.pixels){let n=0;for(const id of pixels)if(id==null)n++;return n}
   // ---------------- 最小色块规则：同一颜色占据的格子数不能太少 ----------------
-  function colorPixelCounts(pixels=state.pixels){const counts=new Map();for(const id of pixels)if(id!=null)counts.set(id,(counts.get(id)||0)+1);return counts}
+  function colorPixelCounts(pixels=state.pixels){
+    const counts=new Map();for(const id of pixels)if(id!=null)counts.set(id,(counts.get(id)||0)+1);
+    if(state.backgroundColorId){const filled=transparentCount(pixels);if(filled)counts.set(state.backgroundColorId,(counts.get(state.backgroundColorId)||0)+filled)}
+    return counts;
+  }
   // 违规色 = 在画布上出现、但格子数少于 minColorPixels 的颜色；调色板中 0 格的颜色不算违规
   function shortColorEntries(counts=colorPixelCounts()){return state.palette.filter(entry=>{const count=counts.get(entry.id)||0;return count>0&&count<state.minColorPixels}).map(entry=>({entry,count:counts.get(entry.id)||0}))}
   // 把不足 min 格的颜色并入"邻接边界最长的幸存色"，四周没有幸存色时退化为 ΔE00 最近的幸存色
@@ -162,14 +172,14 @@
   }
   function indexOf(x,y){return y*SIZE+x}
   function pixelEditable(x,y){return !selection.size||selection.has(indexOf(x,y))}
-  function snapshot(){return {palette:clone(state.palette),pixels:[...state.pixels],currentId:state.currentId,tool:state.tool,symmetry:state.symmetry,grid:state.grid,minDeltaE:state.minDeltaE,penBrushShape:state.penBrushShape,penBrushRadius:state.penBrushRadius,eraserBrushShape:state.eraserBrushShape,eraserBrushRadius:state.eraserBrushRadius,maxColors:state.maxColors,minColorPixels:state.minColorPixels,shape:state.shape,selection:[...selection]}}
+  function snapshot(){return {palette:clone(state.palette),pixels:[...state.pixels],currentId:state.currentId,tool:state.tool,symmetry:state.symmetry,grid:state.grid,minDeltaE:state.minDeltaE,penBrushShape:state.penBrushShape,penBrushRadius:state.penBrushRadius,eraserBrushShape:state.eraserBrushShape,eraserBrushRadius:state.eraserBrushRadius,maxColors:state.maxColors,minColorPixels:state.minColorPixels,shape:state.shape,backgroundColorId:state.backgroundColorId,backgroundVisible:state.backgroundVisible,selection:[...selection]}}
   function normalizeSnapshot(s){
     if(!s||!Array.isArray(s.palette)||s.palette.length>16||!Array.isArray(s.pixels)||s.pixels.length!==SIZE*SIZE)throw new Error('自动保存的数据结构不兼容');
     const ids=new Set(),palette=s.palette.map((entry,i)=>{if(!entry||typeof entry.id!=='string'||!entry.id||ids.has(entry.id)||!hexToRgb(entry.color))throw new Error(`自动保存的调色板第 ${i+1} 项无效`);ids.add(entry.id);return {id:entry.id,color:entry.color.toLowerCase()}});
     const pixels=s.pixels.map(id=>id===null||ids.has(id)?id:null),tools=['pen','eraser','eyedropper','fill','shape','select'],symmetries=['none','horizontal','vertical','both','rotate4','rotate8'],legacyShapeTool=['line','rect','circle'].includes(s.tool)?s.tool:null;
-    const minDeltaE=Number.isFinite(+s.minDeltaE)&&+s.minDeltaE>=MIN_DELTA_E?+s.minDeltaE:DEFAULT_MIN_DELTA_E;return {palette,pixels,currentId:ids.has(s.currentId)?s.currentId:(palette[0]?.id||null),tool:tools.includes(s.tool)?s.tool:(legacyShapeTool?'shape':'pen'),shape:normalizeShapeKey(s.shape||legacyShapeTool||'rect'),symmetry:symmetries.includes(s.symmetry)?s.symmetry:'none',grid:s.grid!==false,minDeltaE,maxColors:normalizeMaxColors(s.maxColors,palette.length),minColorPixels:normalizeMinColorPixels(s.minColorPixels),selection:Array.isArray(s.selection)?s.selection.filter(i=>Number.isInteger(i)&&i>=0&&i<SIZE*SIZE):[]};
+    const minDeltaE=Number.isFinite(+s.minDeltaE)&&+s.minDeltaE>=MIN_DELTA_E?+s.minDeltaE:DEFAULT_MIN_DELTA_E;return {palette,pixels,currentId:ids.has(s.currentId)?s.currentId:(palette[0]?.id||null),tool:tools.includes(s.tool)?s.tool:(legacyShapeTool?'shape':'pen'),shape:normalizeShapeKey(s.shape||legacyShapeTool||'rect'),symmetry:symmetries.includes(s.symmetry)?s.symmetry:'none',grid:s.grid!==false,minDeltaE,maxColors:normalizeMaxColors(s.maxColors,palette.length),minColorPixels:normalizeMinColorPixels(s.minColorPixels),backgroundColorId:ids.has(s.backgroundColorId)?s.backgroundColorId:(s.backgroundColor&&palette.find(entry=>entry.color===String(s.backgroundColor).toLowerCase())?.id||null),backgroundVisible:s.backgroundVisible!==false,selection:Array.isArray(s.selection)?s.selection.filter(i=>Number.isInteger(i)&&i>=0&&i<SIZE*SIZE):[]};
   }
-  function applySnapshot(s){state.palette=clone(s.palette);state.pixels=[...s.pixels];state.currentId=s.currentId;const previousShapeTool=['line','rect','circle'].includes(s.tool)?s.tool:null;state.tool=previousShapeTool?'shape':s.tool;state.shape=normalizeShapeKey(s.shape||previousShapeTool||'rect');state.symmetry=s.symmetry;state.grid=s.grid;state.minDeltaE=Number.isFinite(+s.minDeltaE)&&+s.minDeltaE>=MIN_DELTA_E?+s.minDeltaE:DEFAULT_MIN_DELTA_E;state.maxColors=normalizeMaxColors(s.maxColors,state.palette.length);state.minColorPixels=normalizeMinColorPixels(s.minColorPixels);const legacyShape=['circle','square'].includes(s.brushShape)?s.brushShape:'square',legacyRadius=clamp(Math.round(+s.brushRadius||0),0,8);state.penBrushShape=['circle','square'].includes(s.penBrushShape)?s.penBrushShape:legacyShape;state.penBrushRadius=Number.isFinite(+s.penBrushRadius)?clamp(Math.round(+s.penBrushRadius),0,8):legacyRadius;state.eraserBrushShape=['circle','square'].includes(s.eraserBrushShape)?s.eraserBrushShape:legacyShape;state.eraserBrushRadius=Number.isFinite(+s.eraserBrushRadius)?clamp(Math.round(+s.eraserBrushRadius),0,8):legacyRadius;selection=new Set(s.selection||[]);paste=null;lastPenEnd=null;renderAll();syncColorEditorSelection()}
+  function applySnapshot(s){state.palette=clone(s.palette);state.pixels=[...s.pixels];state.currentId=s.currentId;const previousShapeTool=['line','rect','circle'].includes(s.tool)?s.tool:null;state.tool=previousShapeTool?'shape':s.tool;state.shape=normalizeShapeKey(s.shape||previousShapeTool||'rect');state.symmetry=s.symmetry;state.grid=s.grid;state.minDeltaE=Number.isFinite(+s.minDeltaE)&&+s.minDeltaE>=MIN_DELTA_E?+s.minDeltaE:DEFAULT_MIN_DELTA_E;state.maxColors=normalizeMaxColors(s.maxColors,state.palette.length);state.minColorPixels=normalizeMinColorPixels(s.minColorPixels);state.backgroundColorId=state.palette.some(entry=>entry.id===s.backgroundColorId)?s.backgroundColorId:(s.backgroundColor&&state.palette.find(entry=>entry.color===String(s.backgroundColor).toLowerCase())?.id||null);state.backgroundVisible=s.backgroundVisible!==false;const legacyShape=['circle','square'].includes(s.brushShape)?s.brushShape:'square',legacyRadius=clamp(Math.round(+s.brushRadius||0),0,8);state.penBrushShape=['circle','square'].includes(s.penBrushShape)?s.penBrushShape:legacyShape;state.penBrushRadius=Number.isFinite(+s.penBrushRadius)?clamp(Math.round(+s.penBrushRadius),0,8):legacyRadius;state.eraserBrushShape=['circle','square'].includes(s.eraserBrushShape)?s.eraserBrushShape:legacyShape;state.eraserBrushRadius=Number.isFinite(+s.eraserBrushRadius)?clamp(Math.round(+s.eraserBrushRadius),0,8):legacyRadius;selection=new Set(s.selection||[]);paste=null;lastPenEnd=null;renderAll();syncColorEditorSelection()}
   function beginAction(label){if(!pendingAction)pendingAction={label,before:snapshot()}}
   function commitAction(){if(!pendingAction)return;const after=snapshot();if(JSON.stringify(pendingAction.before)!==JSON.stringify(after)){history.push({...pendingAction,after,time:Date.now()});if(history.length>120)history.shift();redoHistory=[]}pendingAction=null;renderHistory();saveLocal()}
   function cancelAction(){if(pendingAction){applySnapshot(pendingAction.before);pendingAction=null}}
@@ -191,8 +201,8 @@
     requestAnimationFrame(reveal);
     setTimeout(()=>{t.classList.remove('show');setTimeout(()=>{if(topLayer){try{t.hidePopover()}catch(e){}}t.remove()},220)},1900);
   }
-  // 与网页风格一致的中置确认弹窗（替代浏览器原生 confirm）
-  function styledConfirm(message,{title='请确认',okText='确定',danger=true}={}){
+  // 与网页风格一致的中置确认弹窗（替代浏览器原生 confirm）；notice:true 时只保留一个按钮
+  function styledConfirm(message,{title='请确认',okText='确定',danger=true,notice=false}={}){
     return new Promise(resolve=>{
       const dialog=document.createElement('dialog');
       dialog.className='studio-dialog confirm-dialog';
@@ -203,6 +213,7 @@
       frame.querySelector('.confirm-message').textContent=message;
       const ok=frame.querySelector('[data-choice="ok"]');
       ok.textContent=okText;ok.className=danger?'danger':'accent';
+      if(notice)frame.querySelector('[data-choice="cancel"]').remove();
       frame.addEventListener('click',e=>{
         const btn=e.target.closest('[data-choice]');
         if(btn&&dialog.open){dialog.close(btn.dataset.choice);return}
@@ -299,7 +310,11 @@
     const children=dom.canvas.children;
     for(let i=0;i<children.length;i++){const color=paletteColor(state.pixels[i]);children[i].style.backgroundColor=color||'transparent'}
     dom.canvas.classList.toggle('no-grid',!state.grid);$('#toggleGrid').classList.toggle('active',state.grid);
-    renderStudioPalette();
+    // 背景色是画布底层的填充色（不占调色板、不算像素），仅在显示开关打开时铺在透明格下方
+    const showBackground=!!(state.backgroundVisible&&backgroundHex());
+    dom.canvas.style.backgroundColor=showBackground?backgroundHex():'';
+    $('#toggleBackground').classList.toggle('active',state.backgroundVisible);
+    renderStudioPalette();renderBackgroundControls();
     if(importState)drawImportPreview();
   }
   function renderSelection(){
@@ -317,16 +332,26 @@
   function brushSettings(tool=activeBrushTool()){return{shape:state[`${tool}BrushShape`]||'square',radius:clamp(Math.round(+state[`${tool}BrushRadius`]||0),0,8)}}
   function renderBrushControls(){const tool=activeBrushTool(),{shape,radius}=brushSettings(tool),input=$('#brushRadius');$$('[data-brush-shape]').forEach(button=>button.classList.toggle('active',button.dataset.brushShape===shape));input.value=radius;input.nextElementSibling.textContent=`${radius} px`;$('#brushPanelLabel').textContent=tool==='eraser'?'橡皮笔尖':'画笔笔尖'}
   function renderShapeControls(){$$('[data-shape]').forEach(button=>button.classList.toggle('active',button.dataset.shape===normalizeShapeKey(state.shape)))}
+  // 「设置为背景色」按钮：绑定的调色板颜色就是当前目标时，按钮变成清除
+  function renderBackgroundControls(){
+    const button=$('#setBackgroundColor');if(!button)return;
+    const target=backgroundTargetId(),bound=backgroundHex();
+    const isTarget=!!target&&state.backgroundColorId===target;
+    button.textContent=isTarget?'清除背景色':'设置为背景色';
+    button.disabled=!target&&!state.backgroundColorId;
+    button.title=bound?`当前背景色 ${bound.toUpperCase()}（绑定调色板颜色，导出时填充透明像素）${isTarget?'；点击清除':''}`:target?'把当前调色板颜色设为画布背景色（导出时填充透明像素）':'请先在调色板选择一个颜色，背景色需要绑定调色板颜色';
+    button.classList.toggle('active',isTarget);
+  }
   function renderStudioPalette(){
     const root=$('#studioPalette');if(!root)return;root.innerHTML='';
-    const counts=colorPixelCounts(),min=state.minColorPixels,short=[];
+    const counts=colorPixelCounts(),min=state.minColorPixels,short=[],filled=transparentCount();
     state.palette.forEach((entry,i)=>{
-      const count=counts.get(entry.id)||0,under=count>0&&count<min;
-      const sw=document.createElement('div');sw.className=`studio-swatch${editingId===entry.id?' active':''}${under?' under-min':''}`;
+      const count=counts.get(entry.id)||0,under=count>0&&count<min,isBackground=state.backgroundColorId===entry.id;
+      const sw=document.createElement('div');sw.className=`studio-swatch${editingId===entry.id?' active':''}${under?' under-min':''}${isBackground?' background':''}`;
       sw.style.backgroundColor=entry.color;sw.style.color=contrastText(entry.color);
       sw.append(document.createTextNode(i.toString(16).toUpperCase()));
       const badge=document.createElement('small');badge.className='swatch-pixels';badge.textContent=count?String(count):'0';sw.append(badge);
-      sw.title=`长按或拖动排序 · ${entry.color} · ${count} 格${under?`（不足 ${min} 格，可点「整理」合并）`:''}`;
+      sw.title=`长按或拖动排序 · ${entry.color} · ${count} 格${isBackground?`（背景色，含 ${filled} 个透明格）`:''}${under?`（不足 ${min} 格，可点「整理」合并）`:''}`;
       sw.dataset.id=entry.id;sw.dataset.index=i;sw.onclick=()=>{if(Date.now()>=paletteDragSuppressClickUntil)selectEditingColor(entry.id)};
       root.append(sw);
       if(under)short.push(`${entry.color}（${count} 格）`);
@@ -382,7 +407,7 @@
     const tool=e.altKey?'eyedropper':currentTool();if(['pen','fill','shape'].includes(tool))prepareCandidateForDrawing();drawSession={start:pos,last:pos,end:pos,shift:e.shiftKey,tool,shape:state.shape};
     if(tool==='pen'||tool==='eraser'){const connect=tool==='pen'&&e.shiftKey&&lastPenEnd;beginAction(connect?'连接上一笔':tool==='pen'?'绘画像素':'擦除像素');if(connect)paintLine(lastPenEnd,pos,state.currentId);else{paintPoint(pos.x,pos.y,tool==='eraser'?null:state.currentId,true);renderCanvas()}}
     else if(tool==='fill'){beginAction(fillMode==='selection'?(selection.size?'填充选区':'填充画布'):'邻接填充');if(fillMode==='selection'){if(selection.size)selection.forEach(i=>state.pixels[i]=state.currentId);else state.pixels.fill(state.currentId)}else flood(pos.x,pos.y,state.currentId);renderCanvas();commitAction();drawSession=null}
-    else if(tool==='eyedropper'){const id=state.pixels[indexOf(pos.x,pos.y)];if(id)selectEditingColor(id);drawSession=null}
+    else if(tool==='eyedropper'){const id=state.pixels[indexOf(pos.x,pos.y)];if(id)selectEditingColor(id);else if(state.backgroundColorId)selectEditingColor(state.backgroundColorId);drawSession=null}
     else if(tool==='select'){
       if(selectionMode()==='byColor'){const {target,n}=selectSameColorAt(indexOf(pos.x,pos.y),e.shiftKey);toast(target===null?`已全选透明背景（${n} 格）`:`已全选「${paletteColor(target)}」同色格子（${n} 格）`)}
       else if(selectionMode()==='wand'){const {target,n}=selectFloodAt(indexOf(pos.x,pos.y),e.shiftKey);toast(target===null?`已选中相连透明区域（${n} 格）`:`已选中相连「${paletteColor(target)}」区域（${n} 格）`)}
@@ -457,13 +482,13 @@
     if(source!=='rgb'){[['rgbR',rgb.r],['rgbG',rgb.g],['rgbB',rgb.b]].forEach(([id,v])=>{const input=$('#'+id);input.value=Math.round(v);input.nextElementSibling.textContent=Math.round(v)})}
     if(source!=='hsl'){[['hslH',hsl.h,'°'],['hslS',hsl.s,'%'],['hslL',hsl.l,'%']].forEach(([id,v,u])=>{const input=$('#'+id);input.value=Math.round(v);input.nextElementSibling.textContent=Math.round(v)+u})}
     if(source!=='lab'){const labValue=value=>Math.abs(value)<.05?'0.0':value.toFixed(1);$('#labLInput').value=labValue(lab.L);$('#labAInput').value=labValue(lab.a);$('#labBInput').value=labValue(lab.b)}updateColorTracks(rgb,hsl,lab);
-    const updateCheck=editingId?validCandidate(candidate,editingId):{valid:false,conflict:null},addCheck=validCandidate(candidate,null),activeCheck=editingId?updateCheck:addCheck,v=$('#colorValidation');candidateIsValid=activeCheck.valid;v.className='validation '+(activeCheck.valid?'ok':'error');if(activeCheck.valid)v.textContent=editingId?(addCheck.valid?'可更新选中颜色，也可添加为新颜色':'可更新选中颜色'):'可添加到调色板';else{const conflict=activeCheck.conflict;v.textContent=conflict?`与颜色 ${state.palette.indexOf(conflict.entry).toString(16).toUpperCase()} 仅相差 色差 ${conflict.distance.toFixed(2)}`:'请先从调色板选择要更新的颜色'}$('#updateSelectedColor').disabled=!editingId||!updateCheck.valid;$('#deleteSelectedColor').disabled=!editingId;$('#addCandidateColor').disabled=false;if(colorView==='lab')drawLabView();if(colorView==='wheel')drawWheelView()}
+    const updateCheck=editingId?validCandidate(candidate,editingId):{valid:false,conflict:null},addCheck=validCandidate(candidate,null),activeCheck=editingId?updateCheck:addCheck,v=$('#colorValidation');candidateIsValid=activeCheck.valid;v.className='validation '+(activeCheck.valid?'ok':'error');if(activeCheck.valid)v.textContent=editingId?(addCheck.valid?'可更新选中颜色，也可添加为新颜色':'可更新选中颜色'):'可添加到调色板';else{const conflict=activeCheck.conflict;v.textContent=conflict?`与颜色 ${state.palette.indexOf(conflict.entry).toString(16).toUpperCase()} 仅相差 色差 ${conflict.distance.toFixed(2)}`:'请先从调色板选择要更新的颜色'}$('#updateSelectedColor').disabled=!editingId||!updateCheck.valid;$('#deleteSelectedColor').disabled=!editingId;$('#addCandidateColor').disabled=false;renderBackgroundControls();if(colorView==='lab')drawLabView();if(colorView==='wheel')drawWheelView()}
   function syncColorEditorSelection(){const entry=state.palette.find(item=>item.id===state.currentId)||state.palette[0]||null;state.currentId=entry?.id||null;editingId=entry?.id||null;colorDragPreview=false;labCursor=null;wheelCursor=null;setCandidate(entry?.color||DEFAULT_COLOR,'selection');renderPalette();renderStudioPalette()}
   function selectEditingColor(id){editingId=id;state.currentId=id;setCandidate(paletteColor(id),'selection');renderPalette();renderStudioPalette()}
   function applyCandidate(mode=editingId?'update':'add'){const targetId=mode==='update'?editingId:null,target=targetId?state.palette.find(c=>c.id===targetId):null;if(mode==='update'&&!target){syncColorEditorSelection();return false}const check=validCandidate(candidate,targetId);if(!check.valid)return false;if(mode==='update'){beginAction('修改调色板颜色');target.color=candidate;state.currentId=targetId}else{if(state.palette.length>=state.maxColors)return false;beginAction('添加调色板颜色');const item={id:uid(),color:candidate};state.palette.push(item);state.currentId=item.id;editingId=item.id}sortPalettePerceptually();commitAction();renderCanvas();renderSelection();renderPalette();renderStudioPalette();updateStatus();setCandidate(candidate,'selection');toast(mode==='update'?'颜色已更新':'颜色已添加');return true}
   function prepareCandidateForDrawing(){const selected=paletteColor(state.currentId);if(candidate===selected)return;const existing=state.palette.find(entry=>entry.color.toLowerCase()===candidate);if(existing){selectEditingColor(existing.id);return}const nearest=nearestConflict(candidate,null),fallback=message=>{if(nearest){selectEditingColor(nearest.entry.id);toast(`${message}，已就近回落 ${nearest.entry.color}`)}else if(selected){setCandidate(selected,'selection');toast(message)}};if(state.palette.length>=state.maxColors){fallback(`调色板已满（上限 ${state.maxColors} 色）`);return}if(!validCandidate(candidate,null).valid){fallback(`候选颜色不满足最小 色差 ${state.minDeltaE}`);return}applyCandidate('add')}
-  async function deleteColor(id){const used=state.pixels.filter(v=>v===id).length;const question=used?`这个颜色正在被 ${used} 个像素使用。删除后这些像素会变为透明，确定继续吗？`:'确定删除这个颜色吗？';if(!await styledConfirm(question,{title:'删除颜色',okText:'删除'}))return;beginAction('删除调色板颜色');selection.clear();state.pixels.forEach((v,i)=>{if(v===id){state.pixels[i]=null;selection.add(i)}});state.palette=state.palette.filter(c=>c.id!==id);if(state.currentId===id)state.currentId=state.palette[0]?.id||null;if(editingId===id)editingId=null;commitAction();renderAll();setCandidate(paletteColor(state.currentId)||DEFAULT_COLOR,'selection');toast(used?`已删除颜色并选中 ${used} 个透明像素`:'已删除颜色')}
-  async function clearPalette(){if(!state.palette.length)return;if(!await styledConfirm('确定清空调色板吗？画布中的所有像素也会变为透明。',{title:'清空调色板',okText:'清空'}))return;beginAction('清空调色板');state.palette=[];state.pixels.fill(null);state.currentId=null;editingId=null;lastPenEnd=null;selection.clear();paste=null;commitAction();renderAll();syncColorEditorSelection();toast('调色板已清空')}
+  async function deleteColor(id){const used=state.pixels.filter(v=>v===id).length,wasBackground=state.backgroundColorId===id;const question=used?`这个颜色正在被 ${used} 个像素使用。删除后这些像素会变为透明，确定继续吗？`:'确定删除这个颜色吗？';if(!await styledConfirm(question,{title:'删除颜色',okText:'删除'}))return;beginAction('删除调色板颜色');state.pixels.forEach((v,i)=>{if(v===id)state.pixels[i]=null});if(wasBackground)state.backgroundColorId=null;state.palette=state.palette.filter(c=>c.id!==id);if(state.currentId===id)state.currentId=state.palette[0]?.id||null;if(editingId===id)editingId=null;selection.clear();state.pixels.forEach((v,i)=>{if(v==null)selection.add(i)});commitAction();renderAll();setCandidate(paletteColor(state.currentId)||DEFAULT_COLOR,'selection');toast(`${wasBackground?'该颜色是背景色，已同时清除背景色；':''}${used?`已删除颜色并选中全部 ${selection.size} 个透明像素`:'已删除颜色并选中全部透明像素'}`)}
+  async function clearPalette(){if(!state.palette.length)return;if(!await styledConfirm('确定清空调色板吗？画布中的所有像素也会变为透明。',{title:'清空调色板',okText:'清空'}))return;beginAction('清空调色板');state.palette=[];state.pixels.fill(null);state.currentId=null;editingId=null;state.backgroundColorId=null;lastPenEnd=null;selection.clear();paste=null;commitAction();renderAll();syncColorEditorSelection();toast('调色板已清空')}
   // 手动整理：把不足最少格数的颜色并入相邻或最接近的颜色，整体作为一条可撤销历史
   function applySmallColorMerge(label='整理过小色块'){
     const result=enforceMinColorPixels(state.palette,state.pixels,state.minColorPixels);
@@ -595,8 +620,13 @@
   // 留空（或只剩非法字符）时按「未命名」导出
   const exportFileName=value=>sanitizeExportName(value)||EXPORT_FALLBACK_NAME;
   let exportFlowPending=false;
-  // 导出前的规则检查：色块过少时先提示，取消则整个导出作罢，确认则合并后再继续
+  // 导出前的规则检查：先要求绑定背景色来填充透明像素，再检查色块过少
   async function resolveExportRuleBreaks(){
+    const transparent=transparentCount();
+    if(transparent&&!state.backgroundColorId){
+      await styledConfirm(`画布中还有 ${transparent} 个透明像素，且尚未设置背景色，导出会被拒绝。请先在调色板选中一个颜色并点「设置为背景色」，或把画面补画完整后再导出。`,{title:'存在透明像素',okText:'知道了',danger:false,notice:true});
+      return false;
+    }
     const min=state.minColorPixels,list=shortColorEntries();
     if(!list.length)return true;
     const painted=state.pixels.filter(Boolean).length,detail=shortColorSummary(list),single=list.length===1;
@@ -608,8 +638,9 @@
       '取消则不会导出。';
     if(!await styledConfirm(message,{title:'颜色色块过少',okText:'合并并导出',danger:false}))return false;
     const result=applySmallColorMerge('导出前合并过小色块');
-    if(!result){toast('没有需要合并的颜色');return true}
-    toast(`已合并 ${result.mergedCount} 个过小色块${result.fallback?'（画面已统一为 1 色）':''}，继续导出`);
+    if(!result){toast('没有需要合并的颜色')}else toast(`已合并 ${result.mergedCount} 个过小色块${result.fallback?'（画面已统一为 1 色）':''}，继续导出`);
+    const backgroundFilled=backgroundHex()?transparentCount():0;
+    if(backgroundFilled&&backgroundFilled<state.minColorPixels)toast(`注意：背景色只填充了 ${backgroundFilled} 格，少于最少色块 ${state.minColorPixels} 格`);
     return true;
   }
   async function openExportDialog(event){
@@ -621,7 +652,8 @@
       const input=$('#exportFileName');
       input.value='';
       const colors=new Set(state.pixels.filter(Boolean)).size;
-      $('#exportHint').textContent=`${SIZE}×${SIZE} 像素 · 输出 ${SIZE*exportScale}×${SIZE*exportScale} · ${colors} 色 · 索引色 PNG · 留空则命名为「${EXPORT_FALLBACK_NAME}.png」`;
+      const filled=backgroundHex()&&state.pixels.some(id=>id==null)?` · 透明像素以背景色 ${backgroundHex().toUpperCase()} 填充`:'';
+      $('#exportHint').textContent=`${SIZE}×${SIZE} 像素 · 输出 ${SIZE*exportScale}×${SIZE*exportScale} · ${colors} 色 · 索引色 PNG${filled} · 留空则命名为「${EXPORT_FALLBACK_NAME}.png」`;
       dom.exportDialog.showModal();
       requestAnimationFrame(()=>input.focus());
     } finally { exportFlowPending=false }
@@ -637,25 +669,79 @@
     try{const blob=new Blob([await buildIndexedPng(scale)],{type:'image/png'});downloadPng(blob,fileName)}
     catch(error){console.warn('[Pixel Atelier] 索引色 PNG 导出失败，回退 canvas 导出',error);exportPngCanvas(scale,fileName)}
   }
-  function exportPngCanvas(scale,fileName){const c=document.createElement('canvas');c.width=c.height=SIZE*scale;const ctx=c.getContext('2d');ctx.imageSmoothingEnabled=false;state.pixels.forEach((id,i)=>{const color=paletteColor(id);if(!color)return;ctx.fillStyle=color;ctx.fillRect(i%SIZE*scale,Math.floor(i/SIZE)*scale,scale,scale)});c.toBlob(blob=>{if(!blob)return toast('PNG 生成失败');downloadPng(blob,fileName)},'image/png')}
+  function exportPngCanvas(scale,fileName){const c=document.createElement('canvas');c.width=c.height=SIZE*scale;const ctx=c.getContext('2d');ctx.imageSmoothingEnabled=false;state.pixels.forEach((id,i)=>{const color=paletteColor(id)||backgroundHex();if(!color)return;ctx.fillStyle=color;ctx.fillRect(i%SIZE*scale,Math.floor(i/SIZE)*scale,scale,scale)});c.toBlob(blob=>{if(!blob)return toast('PNG 生成失败');downloadPng(blob,fileName)},'image/png')}
   function downloadPng(blob,fileName){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fileName;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
-  async function buildIndexedPng(scale){
-    const counts=new Map();
-    state.pixels.forEach(id=>{if(id!=null)counts.set(id,(counts.get(id)||0)+1)});
-    const used=[...counts.entries()].sort((x,y)=>y[1]-x[1]||paletteColor(x[0]).localeCompare(paletteColor(y[0])));
-    const index=new Map(used.map(([id],i)=>[id,i]));
-    const colors=used.map(([id])=>{const rgb=hexToRgb(paletteColor(id));return[rgb.r,rgb.g,rgb.b]});
-    const edge=SIZE*scale,rows=new Array(edge);
-    for(let y=0;y<edge;y++){const base=Math.floor(y/scale)*SIZE,row=new Int16Array(edge);for(let x=0;x<edge;x++){const id=state.pixels[base+Math.floor(x/scale)];row[x]=id==null?-1:index.get(id)}rows[y]=row}
-    const bytes=await window.PngIndexed.encode({width:edge,height:edge,colors,rows,hasTransparent:state.pixels.some(v=>v==null)});
-    console.info(`[Pixel Atelier] 已导出索引色 PNG ${edge}x${edge}：${used.length} 色 ${bytes.length} 字节`);
+  // ---------------- 导出纯文本：base64(deflate(48 字节调色板 + 背景色槽位 + 4 位颜色索引)) ----------------
+  // 二进制布局（导出时画面不再有透明像素）：
+  //   [0,48)      16 个调色板槽位 × RGB888（按调色板顺序，未使用的槽位为 0,0,0）
+  //   [48]        背景色槽位：0–15 = 绑定的调色板槽位；255 = 未设置背景色
+  //   [49,1201)   每格 4 位索引（2 格 1 字节，高 4 位在前），0–15 对应调色板槽位
+  // 背景色始终绑定调色板颜色，所以它的槽位一定存在；透明格写入该槽位，没有透明格时也保留绑定信息。
+  function buildPlainTextPayload(){
+    const colors=state.palette.slice(0,16).map(entry=>entry.color.toLowerCase());
+    const backgroundSlot=state.backgroundColorId?state.palette.slice(0,16).findIndex(entry=>entry.id===state.backgroundColorId):-1;
+    const bgSlot=backgroundSlot>=0?backgroundSlot:255;
+    const indices=new Map(state.palette.slice(0,16).map((entry,i)=>[entry.id,i]));
+    const pixelBytes=Math.ceil(SIZE*SIZE/2),bytes=new Uint8Array(48+1+pixelBytes);
+    colors.forEach((color,i)=>{const rgb=hexToRgb(color);if(!rgb)return;bytes[i*3]=rgb.r;bytes[i*3+1]=rgb.g;bytes[i*3+2]=rgb.b});
+    bytes[48]=bgSlot;
+    for(let i=0;i<SIZE*SIZE;i++){
+      const id=state.pixels[i];
+      const value=id==null||!indices.has(id)?(bgSlot===255?0:bgSlot):indices.get(id);
+      if(i%2===0)bytes[49+(i>>1)]|=value<<4;else bytes[49+(i>>1)]|=value;
+    }
     return bytes;
   }
-  function projectJson(){return JSON.stringify({format:'pixel-atelier',version:2,size:SIZE,minDeltaE:state.minDeltaE,maxColors:state.maxColors,minColorPixels:state.minColorPixels,palette:state.palette,pixels:state.pixels},null,2)}
+  function bytesToBase64(bytes){let binary='';const chunk=0x8000;for(let i=0;i<bytes.length;i+=chunk)binary+=String.fromCharCode(...bytes.subarray(i,i+chunk));return btoa(binary)}
+  async function buildPlainText(){
+    if(typeof CompressionStream==='undefined')throw new Error('当前浏览器不支持压缩，无法导出纯文本');
+    const stream=new Blob([buildPlainTextPayload()]).stream().pipeThrough(new CompressionStream('deflate'));
+    return bytesToBase64(new Uint8Array(await new Response(stream).arrayBuffer()));
+  }
+  async function writeClipboard(text,textarea=null){
+    try{if(window.isSecureContext&&navigator.clipboard?.writeText){await navigator.clipboard.writeText(text);return true}}catch(error){console.warn('[Pixel Atelier] Clipboard API 不可用，尝试兼容复制',error)}
+    if(textarea){textarea.focus();textarea.select();try{if(document.execCommand?.('copy'))return true}catch(error){console.warn('[Pixel Atelier] 兼容复制失败',error)}}
+    return false;
+  }
+  async function openTextExportDialog(){
+    if(exportFlowPending)return;
+    exportFlowPending=true;
+    try{
+      if(!await resolveExportRuleBreaks())return;
+      const text=await buildPlainText();
+      const area=$('#exportTextData'),colors=state.palette.slice(0,16).length;
+      const filled=backgroundHex()?`第 49 字节为背景色槽位（${backgroundHex().toUpperCase()}）`:'第 49 字节为背景色槽位（255 = 未设置背景色）';
+      area.value=text;
+      $('#exportTextHint').textContent=`${SIZE}×${SIZE} 像素 · 前 48 字节 = 16 个颜色（RGB，当前 ${colors} 色，其余补 0）· ${filled} · 其后 ${Math.ceil(SIZE*SIZE/2)} 字节 = 每格 4 位颜色索引（0–15，2 格 1 字节）· deflate 压缩后 base64 · 共 ${text.length} 字符`;
+      dom.textDialog.showModal();
+      requestAnimationFrame(()=>{area.focus();area.setSelectionRange(0,text.length)});
+      toast(await writeClipboard(text,area)?'纯文本已生成并复制到剪贴板':'纯文本已生成，请点「复制」或手动复制');
+    }catch(error){
+      console.error('[Pixel Atelier] 纯文本导出失败',error);
+      toast(error instanceof Error?error.message:'纯文本导出失败');
+    }finally{exportFlowPending=false}
+  }
+  async function buildIndexedPng(scale){
+    // 背景色在导出时填充透明格：作为额外的“颜色”参与索引，不写进调色板
+    const background=backgroundHex(),transparentCountValue=transparentCount();
+    const backgroundKey=background&&transparentCountValue?'__background__':null;
+    const colorOf=key=>key===backgroundKey?background:paletteColor(key);
+    const counts=new Map();
+    state.pixels.forEach(id=>{const key=id==null?(backgroundKey||null):id;if(key!=null)counts.set(key,(counts.get(key)||0)+1)});
+    const used=[...counts.entries()].sort((x,y)=>y[1]-x[1]||colorOf(x[0]).localeCompare(colorOf(y[0])));
+    const index=new Map(used.map(([id],i)=>[id,i]));
+    const colors=used.map(([id])=>{const rgb=hexToRgb(colorOf(id));return[rgb.r,rgb.g,rgb.b]});
+    const edge=SIZE*scale,rows=new Array(edge);
+    for(let y=0;y<edge;y++){const base=Math.floor(y/scale)*SIZE,row=new Int16Array(edge);for(let x=0;x<edge;x++){const id=state.pixels[base+Math.floor(x/scale)];row[x]=id==null?(backgroundKey?index.get(backgroundKey):-1):index.get(id)}rows[y]=row}
+    const bytes=await window.PngIndexed.encode({width:edge,height:edge,colors,rows,hasTransparent:transparentCountValue>0&&!backgroundKey});
+    console.info(`[Pixel Atelier] 已导出索引色 PNG ${edge}x${edge}：${used.length} 色 ${bytes.length} 字节${backgroundKey?`（透明像素已填充背景色 ${background}）`:''}`);
+    return bytes;
+  }
+  function projectJson(){return JSON.stringify({format:'pixel-atelier',version:2,size:SIZE,minDeltaE:state.minDeltaE,maxColors:state.maxColors,minColorPixels:state.minColorPixels,backgroundColorId:state.backgroundColorId,backgroundVisible:state.backgroundVisible,palette:state.palette,pixels:state.pixels},null,2)}
   function openData(mode){$('#projectData').value=mode==='export'?projectJson():'';$('#applyProjectData').style.display=mode==='export'?'none':'';$('#copyProjectData').style.display=mode==='export'?'':'none';$('#dataDialog').showModal()}
-  function applyProjectData(){try{const data=JSON.parse($('#projectData').value);if(data.format!=='pixel-atelier'||data.version!==2||data.size!==SIZE||!Array.isArray(data.pixels)||data.pixels.length!==SIZE*SIZE||!Array.isArray(data.palette)||data.palette.length>MAX_COLORS)throw new Error('项目格式、版本或尺寸不正确');if(data.palette.length>state.maxColors)throw new Error(`项目包含 ${data.palette.length} 种颜色，超过当前颜色数量上限 ${state.maxColors}`);const ids=new Set(),palette=data.palette.map((entry,i)=>{if(!entry||!['string','number'].includes(typeof entry.id))throw new Error(`调色板第 ${i+1} 项缺少有效 ID`);const id=String(entry.id);if(!id||ids.has(id))throw new Error(`调色板第 ${i+1} 项 ID 重复或为空`);const rgb=typeof entry.color==='string'?hexToRgb(entry.color):null;if(!rgb)throw new Error(`调色板第 ${i+1} 项颜色无效`);ids.add(id);return {id,color:rgbToHex(rgb.r,rgb.g,rgb.b)}}),pixels=data.pixels.map((id,i)=>{if(id===null)return null;const normalized=String(id);if(!ids.has(normalized))throw new Error(`第 ${i+1} 个像素引用了不存在的颜色`);return normalized}),minDeltaE=Number.isFinite(+data.minDeltaE)&&+data.minDeltaE>=MIN_DELTA_E?+data.minDeltaE:DEFAULT_MIN_DELTA_E;beginAction('导入项目数据');state.palette=palette;state.pixels=pixels;lastPenEnd=null;sortPalettePerceptually();state.currentId=state.palette[0]?.id||null;state.minDeltaE=minDeltaE;state.maxColors=normalizeMaxColors(data.maxColors,state.palette.length);if(data.minColorPixels!==undefined)state.minColorPixels=normalizeMinColorPixels(data.minColorPixels);selection.clear();commitAction();renderAll();syncColorEditorSelection();$('#dataDialog').close();const shortCount=shortColorEntries().length;toast(shortCount?`项目导入成功；有 ${shortCount} 个颜色不足 ${state.minColorPixels} 格，可点调色板旁的「整理」合并`:'项目导入成功')}catch(e){toast(e instanceof Error?e.message:'项目数据无效')}}
+  function applyProjectData(){try{const data=JSON.parse($('#projectData').value);if(data.format!=='pixel-atelier'||data.version!==2||data.size!==SIZE||!Array.isArray(data.pixels)||data.pixels.length!==SIZE*SIZE||!Array.isArray(data.palette)||data.palette.length>MAX_COLORS)throw new Error('项目格式、版本或尺寸不正确');if(data.palette.length>state.maxColors)throw new Error(`项目包含 ${data.palette.length} 种颜色，超过当前颜色数量上限 ${state.maxColors}`);const ids=new Set(),palette=data.palette.map((entry,i)=>{if(!entry||!['string','number'].includes(typeof entry.id))throw new Error(`调色板第 ${i+1} 项缺少有效 ID`);const id=String(entry.id);if(!id||ids.has(id))throw new Error(`调色板第 ${i+1} 项 ID 重复或为空`);const rgb=typeof entry.color==='string'?hexToRgb(entry.color):null;if(!rgb)throw new Error(`调色板第 ${i+1} 项颜色无效`);ids.add(id);return {id,color:rgbToHex(rgb.r,rgb.g,rgb.b)}}),pixels=data.pixels.map((id,i)=>{if(id===null)return null;const normalized=String(id);if(!ids.has(normalized))throw new Error(`第 ${i+1} 个像素引用了不存在的颜色`);return normalized}),minDeltaE=Number.isFinite(+data.minDeltaE)&&+data.minDeltaE>=MIN_DELTA_E?+data.minDeltaE:DEFAULT_MIN_DELTA_E;beginAction('导入项目数据');state.palette=palette;state.pixels=pixels;lastPenEnd=null;sortPalettePerceptually();state.currentId=state.palette[0]?.id||null;state.minDeltaE=minDeltaE;state.maxColors=normalizeMaxColors(data.maxColors,state.palette.length);if(data.minColorPixels!==undefined)state.minColorPixels=normalizeMinColorPixels(data.minColorPixels);state.backgroundColorId=ids.has(data.backgroundColorId)?String(data.backgroundColorId):(data.backgroundColor&&palette.find(entry=>entry.color===String(data.backgroundColor).toLowerCase())?.id||null);state.backgroundVisible=data.backgroundVisible!==false;selection.clear();commitAction();renderAll();syncColorEditorSelection();$('#dataDialog').close();const shortCount=shortColorEntries().length;toast(shortCount?`项目导入成功；有 ${shortCount} 个颜色不足 ${state.minColorPixels} 格，可点调色板旁的「整理」合并`:'项目导入成功')}catch(e){toast(e instanceof Error?e.message:'项目数据无效')}}
 
-  // ---------------- 从配置导入（pngs2yml.py 生成的 floor_patterns 配置片段） ----------------
+  // ---------------- 从文本导入（优先解析「导出文本」的纯文本，兼容 pngs2yml.py 生成的 floor_patterns 配置） ----------------
   let configState=null,configPreviewTimer=null;
   function yamlQuoteClosed(value){
     const s=value.trim();
@@ -735,16 +821,62 @@
     const colors=new Map(item.palette.map(entry=>[entry.id,entry.color]));
     item.pixels.forEach((id,i)=>{if(!id)return;const cx=i%SIZE,cy=Math.floor(i/SIZE),x0=Math.round(cx*scale),y0=Math.round(cy*scale),x1=Math.round((cx+1)*scale),y1=Math.round((cy+1)*scale);ctx.fillStyle=colors.get(id);ctx.fillRect(x0,y0,x1-x0,y1-y0)});
   }
+  // 解析「导出文本」：base64(deflate(48 字节 16 色 × RGB888 + 1 字节背景色槽位 + 每格 4 位索引))
+  // 导入后画面像素按文本原样恢复（全部为实心格子），背景色槽位对应的颜色会绑定为画布背景色
+  async function decodePlainTextExport(text){
+    const clean=String(text).replace(/\s+/g,'');
+    if(!clean)throw new Error('内容为空，请先粘贴文本');
+    let bytes;
+    try{const binary=atob(clean);bytes=new Uint8Array(binary.length);for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i)}
+    catch(error){throw new Error('文本不是有效的 base64',{cause:error})}
+    if(typeof DecompressionStream==='undefined')throw new Error('当前浏览器不支持解压，无法导入文本');
+    let raw;
+    try{
+      const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate'));
+      raw=new Uint8Array(await new Response(stream).arrayBuffer());
+    }catch(error){throw new Error('文本解压失败，可能不是本站导出的纯文本',{cause:error})}
+    const expected=49+Math.ceil(SIZE*SIZE/2);
+    if(raw.length!==expected)throw new Error(`解压后长度应为 ${expected} 字节（48 调色板 + 1 背景色槽位 + ${Math.ceil(SIZE*SIZE/2)} 索引），实际 ${raw.length} 字节`);
+    const slots=[];for(let i=0;i<16;i++)slots.push({r:raw[i*3],g:raw[i*3+1],b:raw[i*3+2]});
+    const backgroundSlot=raw[48];
+    if(backgroundSlot!==255&&backgroundSlot>15)throw new Error(`背景色槽位 ${backgroundSlot} 无效（应为 0–15 或 255）`);
+    const slotOf=new Int16Array(SIZE*SIZE),used=new Set();
+    for(let i=0;i<SIZE*SIZE;i++){
+      const byte=raw[49+(i>>1)],value=i%2===0?(byte>>4):(byte&15);
+      slotOf[i]=value;used.add(value);
+    }
+    // 背景色槽位即使在画面上没有格子使用，也要作为一个调色板颜色保留下来（背景色绑定调色板颜色）
+    if(backgroundSlot!==255)used.add(backgroundSlot);
+    const order=[...used].sort((a,b)=>a-b);
+    if(order.length>state.maxColors)throw new Error(`文本包含 ${order.length} 种颜色，超过当前颜色数量上限 ${state.maxColors}`);
+    const remap=new Map(order.map((slot,index)=>[slot,index]));
+    const palette=order.map(slot=>({id:uid(),color:rgbToHex(slots[slot].r,slots[slot].g,slots[slot].b)}));
+    const pixels=Array.from(slotOf,slot=>palette[remap.get(slot)].id);
+    const backgroundColor=backgroundSlot===255?null:rgbToHex(slots[backgroundSlot].r,slots[backgroundSlot].g,slots[backgroundSlot].b);
+    const small=enforceMinColorPixels(palette,pixels,state.minColorPixels);
+    return {name:'',colors:palette.map(entry=>entry.color),palette:small.palette,pixels:small.pixels,opaque:pixels.filter(Boolean).length,smallMerged:small.mergedCount,smallFallback:small.fallback,backgroundColor,format:'text'};
+  }
+  // 纯文本导出的文本只由 base64 字符组成；用这个特征与旧的 floor_patterns 配置区分
+  const looksLikePlainTextExport=text=>{const clean=String(text).trim();return clean.length>=40&&/^[A-Za-z0-9+/=\s]+$/.test(clean)};
   function updateConfigImport(){
     clearTimeout(configPreviewTimer);
-    configPreviewTimer=setTimeout(()=>{
+    configPreviewTimer=setTimeout(async()=>{
       const status=$('#configStatus'),errBox=$('#configError'),confirm=$('#confirmConfigImport');
       let previewItem=null;
       try{
-        const items=parseFloorPatternConfig($('#configText').value);
-        if(!items.length)throw new Error('没有找到配置项');
-        configState={items};previewItem=decodeFloorPattern(items[0]);
-        confirm.disabled=false;errBox.hidden=true;status.textContent=`可导入：${previewItem.name?`「${previewItem.name}」 · `:''}${previewItem.palette.length} 色 · ${previewItem.opaque} 不透明像素${previewItem.smallMerged?` · 合并过小色块 ${previewItem.smallMerged}`:''}${items.length>1?` · 共 ${items.length} 个图案，将导入第 1 个`:''}`;
+        const source=$('#configText').value;
+        if(looksLikePlainTextExport(source)){
+          previewItem=await decodePlainTextExport(source);
+          configState={kind:'text',item:previewItem};
+          confirm.disabled=false;errBox.hidden=true;
+          status.textContent=`可导入（纯文本）：${previewItem.palette.length} 色 · ${previewItem.opaque} 像素${previewItem.backgroundColor?` · 背景色 ${previewItem.backgroundColor.toUpperCase()}`:''}${previewItem.smallMerged?` · 合并过小色块 ${previewItem.smallMerged}`:''}`;
+        }else{
+          const items=parseFloorPatternConfig(source);
+          if(!items.length)throw new Error('没有找到配置项');
+          configState={kind:'config',items};previewItem=decodeFloorPattern(items[0]);
+          confirm.disabled=false;errBox.hidden=true;
+          status.textContent=`可导入（floor_patterns）：${previewItem.name?`「${previewItem.name}」 · `:''}${previewItem.palette.length} 色 · ${previewItem.opaque} 不透明像素${previewItem.smallMerged?` · 合并过小色块 ${previewItem.smallMerged}`:''}${items.length>1?` · 共 ${items.length} 个图案，将导入第 1 个`:''}`;
+        }
       }catch(error){
         configState=null;confirm.disabled=true;errBox.hidden=false;errBox.textContent=error instanceof Error?error.message:String(error);status.textContent='';
       }
@@ -752,24 +884,25 @@
     },160);
   }
   function openConfigImport(){
-    configState=null;$('#configText').value='';$('#configError').hidden=true;$('#configStatus').textContent='粘贴 floor_patterns 配置后自动预览';$('#confirmConfigImport').disabled=true;drawConfigPreview(null);dom.configDialog.showModal();requestAnimationFrame(()=>$('#configText').focus());
+    configState=null;$('#configText').value='';$('#configError').hidden=true;$('#configStatus').textContent='粘贴「导出文本」的纯文本或 floor_patterns 配置后自动预览';$('#confirmConfigImport').disabled=true;drawConfigPreview(null);dom.configDialog.showModal();requestAnimationFrame(()=>$('#configText').focus());
   }
-  function confirmConfigImport(){
-    if(!configState?.items?.length)return;
+  async function confirmConfigImport(){
+    if(!configState)return;
     try{
-      const item=decodeFloorPattern(configState.items[0]);
+      const item=configState.kind==='text'?configState.item:decodeFloorPattern(configState.items[0]);
       const closePairs=[],finalColors=item.palette.map(entry=>entry.color);
       for(let i=0;i<finalColors.length;i++)for(let j=i+1;j<finalColors.length;j++){
         const d=deltaE00(colorLab(finalColors[i]),colorLab(finalColors[j]));
         if(d<state.minDeltaE)closePairs.push(`${finalColors[i]} 与 ${finalColors[j]}（色差 ${d.toFixed(2)}）`);
       }
-      beginAction('从配置导入');state.palette=item.palette;state.pixels=item.pixels;lastPenEnd=null;sortPalettePerceptually();state.currentId=state.palette[0]?.id||null;selection.clear();commitAction();renderAll();syncColorEditorSelection();dom.configDialog.close();
-      toast(`已导入配置${item.name?`「${item.name}」`:''}：${item.palette.length} 色 · ${item.opaque} 不透明像素${closePairs.length?`；注意：${closePairs.join('、')} 低于当前最小色差 ${state.minDeltaE}`:''}${item.smallMerged?`；已合并 ${item.smallMerged} 个过小色块`:''}`);
-    }catch(error){toast(error instanceof Error?error.message:'配置无效，请检查格式')}
+      const label=configState.kind==='text'?'从文本导入':'从配置导入';
+      beginAction(label);state.palette=item.palette;state.pixels=item.pixels;lastPenEnd=null;sortPalettePerceptually();state.currentId=state.palette[0]?.id||null;if(item.backgroundColor){const match=state.palette.find(entry=>entry.color===String(item.backgroundColor).toLowerCase());state.backgroundColorId=match?match.id:null;if(state.backgroundColorId)state.backgroundVisible=true}else if(configState.kind==='text')state.backgroundColorId=null;if(state.backgroundColorId&&!state.palette.some(entry=>entry.id===state.backgroundColorId))state.backgroundColorId=null;selection.clear();commitAction();renderAll();syncColorEditorSelection();dom.configDialog.close();
+      toast(`${configState.kind==='text'?'已从文本导入':'已导入配置'}${item.name?`「${item.name}」`:''}：${item.palette.length} 色 · ${item.opaque} 像素${item.backgroundColor?` · 背景色 ${item.backgroundColor.toUpperCase()}`:''}${closePairs.length?`；注意：${closePairs.join('、')} 低于当前最小色差 ${state.minDeltaE}`:''}${item.smallMerged?`；已合并 ${item.smallMerged} 个过小色块`:''}`);
+    }catch(error){toast(error instanceof Error?error.message:'文本内容无效，请检查格式')}
   }
 
 
-  async function copyProjectData(){const textarea=$('#projectData'),text=textarea.value;try{if(window.isSecureContext&&navigator.clipboard?.writeText){await navigator.clipboard.writeText(text);toast('项目数据已复制');return}}catch(error){console.warn('[Pixel Atelier] Clipboard API 不可用，尝试兼容复制',error)}textarea.focus();textarea.select();try{if(document.execCommand?.('copy')){toast('项目数据已复制');return}}catch(error){console.warn('[Pixel Atelier] 兼容复制失败',error)}toast('自动复制不可用，内容已全选，请手动复制')}
+  async function copyProjectData(){const textarea=$('#projectData');toast(await writeClipboard(textarea.value,textarea)?'项目数据已复制':'自动复制不可用，内容已全选，请手动复制')}
 
   function bindEvents(){
     dom.cancelSelection.addEventListener('pointerdown',e=>e.stopPropagation());
@@ -786,6 +919,8 @@
     $$('[data-selection-action]').forEach(btn=>btn.onclick=()=>selectionAction(btn.dataset.selectionAction));
     $('#undo').onclick=undo;$('#redo').onclick=redo;$('#zoomIn').onclick=()=>setZoom(zoom+.25);$('#zoomOut').onclick=()=>setZoom(zoom-.25);$('#resetView').onclick=resetView;
     $('#toggleGrid').onclick=()=>{beginAction(state.grid?'隐藏网格':'显示网格');state.grid=!state.grid;commitAction();renderCanvas()};
+    $('#toggleBackground').onclick=()=>{const next=!state.backgroundVisible;beginAction(next?'显示背景色':'隐藏背景色');state.backgroundVisible=next;commitAction();renderCanvas();if(next&&!state.backgroundColorId)toast('还没有背景色：请在调色板选中一个颜色后点「设置为背景色」')};
+    $('#setBackgroundColor').onclick=()=>{const target=backgroundTargetId();if(!target){if(state.backgroundColorId){beginAction('清除背景色');state.backgroundColorId=null;commitAction();renderCanvas();renderPalette();toast('已清除背景色')}else toast('请先在调色板选择一个颜色，背景色需要绑定调色板颜色');return}if(state.backgroundColorId===target){beginAction('清除背景色');state.backgroundColorId=null;commitAction();renderCanvas();renderPalette();toast('已清除背景色')}else{const color=paletteColor(target);beginAction('设置背景色');state.backgroundColorId=target;state.backgroundVisible=true;commitAction();renderCanvas();renderPalette();toast(`已把调色板颜色 ${color.toUpperCase()} 设为背景色：导出时会用它填充透明像素`)}};
     $('#clearCanvas').onclick=async()=>{if(!await styledConfirm('确定清空整个画布吗？',{title:'清空画布',okText:'清空'}))return;beginAction('清空画布');state.pixels.fill(null);selection.clear();lastPenEnd=null;commitAction();renderAll()};
     $('#themeToggle').onclick=()=>{document.body.classList.toggle('dark-theme');$('#themeToggle').textContent=document.body.classList.contains('dark-theme')?'☼':'☾'};
     $('#tutorialOpen').onclick=async()=>{await loadTutorialMarkdown();openTutorial(0)};
@@ -793,7 +928,8 @@
     $('#tutorialNext').onclick=()=>stepTutorial(1);
     $$('[data-tutorial-close]').forEach(button=>button.onclick=()=>closeTutorial());
     dom.tutorialDialog.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'){e.preventDefault();stepTutorial(-1)}else if(e.key==='ArrowRight'){e.preventDefault();stepTutorial(1)}});
-    $('#importImage').onclick=openImagePicker;$('#importImageFile').onchange=e=>loadImportImage(e.target.files[0]);$('#exportPng').onclick=openExportDialog;$('#exportForm').onsubmit=e=>{e.preventDefault();confirmExport()};$$('[data-export-cancel]').forEach(button=>button.onclick=()=>dom.exportDialog.close());
+    $('#importImage').onclick=openImagePicker;$('#importImageFile').onchange=e=>loadImportImage(e.target.files[0]);$('#exportPng').onclick=openExportDialog;$('#exportText').onclick=openTextExportDialog;$('#exportForm').onsubmit=e=>{e.preventDefault();confirmExport()};$$('[data-export-cancel]').forEach(button=>button.onclick=()=>dom.exportDialog.close());$$('[data-text-cancel]').forEach(button=>button.onclick=()=>dom.textDialog.close());
+    $('#copyExportText').onclick=async()=>{const area=$('#exportTextData');toast(await writeClipboard(area.value,area)?'纯文本已复制到剪贴板':'复制失败，请手动复制')};
     $('#submitWork').onclick=()=>{const link=document.createElement('a');link.href=SUBMIT_URL;link.target='_blank';link.rel='noopener noreferrer';document.body.append(link);link.click();link.remove()};$('#exportData').onclick=()=>openData('export');$('#importData').onclick=()=>openData('import');$('#copyProjectData').onclick=copyProjectData;$('#applyProjectData').onclick=applyProjectData;$('#importConfig').onclick=openConfigImport;$('#configText').oninput=updateConfigImport;$('#confirmConfigImport').onclick=confirmConfigImport;$('#importClearPalette').onclick=clearPalette;dom.importDialog.addEventListener('close',cleanupImport);
     $$('.view-tabs button').forEach(btn=>btn.onclick=()=>{colorView=btn.dataset.colorView;$$('.view-tabs button').forEach(b=>b.classList.toggle('active',b===btn));$$('.color-view').forEach(v=>v.classList.toggle('active',v.id===`${colorView}View`));if(colorView==='lab')drawLabView();if(colorView==='wheel')drawWheelView()});
     const requestAddCandidate=()=>{if(state.palette.length>=state.maxColors){toast(`超过颜色数量上限（最多 ${state.maxColors} 色）`);return false}const check=validCandidate(candidate,null);if(!check.valid){toast(`与已有颜色过近，至少需要 色差 ${state.minDeltaE}`);return false}return applyCandidate('add')};$('#updateSelectedColor').onclick=()=>applyCandidate('update');$('#deleteSelectedColor').onclick=()=>{if(editingId)deleteColor(editingId)};$('#clearPalette').onclick=clearPalette;$('#normalizeSmallColors').onclick=normalizeSmallColors;$('#addCandidateColor').onclick=requestAddCandidate;$('#nativePicker').onclick=()=>$('#nativeColor').click();$('#nativeColor').oninput=e=>setCandidate(e.target.value);$('#hexInput').onchange=e=>{let v=e.target.value;if(!v.startsWith('#'))v='#'+v;if(hexToRgb(v))setCandidate(v);else toast('请输入六位 HEX 颜色')};
