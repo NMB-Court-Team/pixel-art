@@ -15,16 +15,16 @@
   <header class="topbar">
     <nav id="toolStrip" class="tool-strip" aria-label="绘图工具">
       <button class="tool" data-action="files" data-panel="filesPanel" title="导入导出"><i>⇅</i><span>文件</span></button>
-      <button class="tool" data-tool="pan" title="移动视图：按住拖动平移画布"><i>✥</i><span>鼠标</span></button>
+      <button class="tool" data-tool="pan" title="移动视图：按住拖动平移画布"><i>✥</i><span>平移</span></button>
       <button class="tool active" data-tool="pen" data-panel="brushPanel" title="画笔 B · Shift 点击连接上一笔终点"><i>✎</i><span>画笔</span></button>
       <button class="tool" data-tool="eraser" data-panel="brushPanel" title="橡皮 E"><i>◇</i><span>橡皮</span></button>
-      <button class="tool" data-tool="eyedropper" title="取色 Alt（点击画布取色，无二级面板）"><i>⌁</i><span>取色</span></button>
+      <button class="tool" data-tool="eyedropper" title="点击画布取色；也可按住 Alt 临时取色"><i>⌁</i><span>取色</span></button>
       <button class="tool" data-tool="fill" data-panel="fillPanel" title="填充 F"><i>◒</i><span>填充</span></button>
       <button class="tool" data-tool="shape" data-panel="shapePanel" title="图形：矩形 / 空心矩形 / 圆形 / 空心圆形 / 直线"><i>▣</i><span>图形</span></button>
       <button class="tool" data-tool="select" data-panel="selectionPanel" title="选区 M"><i>▭</i><span>选区</span></button>
       <button class="tool" data-action="symmetry" data-panel="symmetryPanel" title="对称"><i>⌁</i><span>对称</span></button>
       <button class="tool" data-action="history" data-panel="historyPanel" title="历史记录"><i>↶</i><span>历史</span></button>
-      <a class="tool tool-link" href="https://github.com/NMB-Court-Team/pixel-art/issues" target="_blank" rel="noopener noreferrer" title="汇报问题（新标签页打开 GitHub Issues）"><i>⚠</i><span>汇报问题</span></a>
+      <a class="tool tool-link" href="https://github.com/NMB-Court-Team/pixel-art/issues" target="_blank" rel="noopener noreferrer" title="反馈问题（新标签页打开 GitHub Issues）"><i>⚠</i><span>反馈问题</span></a>
     </nav>
     <div class="top-actions">
       <button id="undo" class="icon-btn" title="撤销 Ctrl+Z">↶</button><button id="redo" class="icon-btn" title="重做 Ctrl+Y">↷</button>
@@ -59,9 +59,9 @@
       <button data-symmetry="horizontal">水平</button><button data-symmetry="vertical">垂直</button><button data-symmetry="both">双向</button>
       <button data-symmetry="rotate4">四向旋转</button><button data-symmetry="rotate8">八向旋转</button>
     </div>
-    <div id="historyPanel" class="option-panel history-panel"><span class="panel-label">变动记录</span><div id="historyList" class="history-list"></div></div>
+    <div id="historyPanel" class="option-panel history-panel"><span class="panel-label">历史记录</span><div id="historyList" class="history-list"></div></div>
     <div id="filesPanel" class="option-panel">
-      <span class="panel-label">文件</span><button id="importImage">导入图片</button><button id="exportPng" class="accent" title="导出 1× PNG 并可自定义文件名；按住 Alt 导出 16×">导出 PNG</button><button id="exportText" class="quiet" title="导出纯文本格式">导出文本</button><button id="submitWork" class="quiet" title="打开作品提交地址（链接待替换）">跳转提交</button>
+      <span class="panel-label">文件</span><button id="importImage">导入图片</button><button id="exportPng" class="accent" title="导出 1× PNG 并可自定义文件名；按住 Alt 导出 16×">导出 PNG</button><button id="exportText" class="quiet" title="导出纯文本格式">导出文本</button><button id="submitWork" class="quiet" title="打开作品提交页面；入口尚未开放时会提示">提交作品</button>
       <button id="exportData">复制项目数据</button><button id="importData">导入项目数据</button><button id="importConfig">从文本导入</button>
     </div>
   </section>
@@ -70,7 +70,7 @@
     <section class="stage-head">
       <div class="view-controls">
         <button id="tutorialOpen" class="quiet" title="使用教程（首次打开网页会自动显示）">教程</button>
-        <button id="toggleBackground" class="quiet active" title="背景：显示背景色 / 透明网格（不影响导出，导出始终用背景色填充透明像素）">背景</button>
+        <button id="toggleBackground" class="quiet active" title="显示或隐藏背景色；隐藏时显示透明棋盘格，不影响导出">背景</button>
         <button id="toggleGrid" class="quiet" title="网格 G">网格</button>
         <button id="zoomOut" class="icon-btn" title="缩小">−</button><output id="zoomValue">100%</output><button id="zoomIn" class="icon-btn" title="放大">＋</button>
         <button id="resetView" class="quiet">重置视角</button><button id="clearCanvas" class="danger">清空</button>
@@ -93,7 +93,7 @@
       <div class="view-tabs" role="tablist"><button type="button" data-color-view="lab">Lab 色域</button><button type="button" data-color-view="wheel" class="active">色相环</button><button type="button" data-color-view="channels">通道</button></div>
       <div class="studio-body">
         <section class="color-space">
-          <div id="labView" class="color-view"><div class="color-map-stack"><canvas id="labCanvas" width="420" height="300"></canvas><svg id="labOverlay" class="color-map-overlay" viewBox="0 0 420 300" aria-hidden="true"><g id="labRestrictionLayer"></g><g id="labMarkerLayer"></g><circle id="labCandidateMarker" class="candidate-marker" r="7"></circle></svg></div><label>L* 亮度 <input id="labLightness" type="range" min="0" max="100" value="50"><output>50</output></label></div>
+          <div id="labView" class="color-view"><div class="color-map-stack"><canvas id="labCanvas" width="420" height="300"></canvas><svg id="labOverlay" class="color-map-overlay" viewBox="0 0 420 300" aria-hidden="true"><g id="labRestrictionLayer"></g><g id="labMarkerLayer"></g><circle id="labCandidateMarker" class="candidate-marker" r="7"></circle></svg></div><label>L* 明度 <input id="labLightness" type="range" min="0" max="100" value="50"><output>50</output></label></div>
           <div id="wheelView" class="color-view active"><div class="color-map-stack wheel-map-stack"><canvas id="wheelCanvas" width="360" height="360"></canvas><svg id="wheelOverlay" class="color-map-overlay" viewBox="0 0 360 360" aria-hidden="true"><g id="wheelRestrictionLayer"></g><g id="wheelMarkerLayer"></g><circle id="wheelCandidateMarker" class="candidate-marker" r="7"></circle></svg></div><label>明度 <input id="wheelLightness" type="range" min="0" max="100" value="50"><output>50%</output></label></div>
           <div id="channelsView" class="color-view channels-view">
             <label class="hex-field">HEX <input id="hexInput" maxlength="7" value="#808080"><button id="nativePicker" type="button">拾色器</button><input id="nativeColor" type="color" value="#808080" tabindex="-1"></label>
@@ -105,9 +105,9 @@
         <section class="color-inspector">
           <div id="candidatePreview" class="candidate-preview"><span style="background:#808080"></span><div><small>候选颜色</small><b>#808080</b></div></div>
           <div id="colorValidation" class="validation ok">可添加到调色板</div>
-          <div class="color-actions"><button id="updateSelectedColor" type="button" class="accent" title="也可在色图上按 Alt 单击">更新选中颜色</button><button id="deleteSelectedColor" type="button" class="danger" disabled>删除选中颜色</button><button id="addCandidateColor" type="button" class="quiet add-color-action" title="也可在色图上按 Shift 单击">添加新颜色到调色板</button><button id="setBackgroundColor" type="button" class="quiet background-color-action" title="把当前候选颜色设为画布背景色（导出时填充透明像素）">设置为背景色</button></div>
-          <h3>调色板 <span id="studioPaletteCount">0 / 16</span><label class="color-limit-inline" title="颜色数量上限：可调 1–16，不能低于现有颜色数">上限 <input id="maxColors" type="number" min="1" max="16" step="1" value="16" inputmode="numeric"></label><button id="normalizeSmallColors" type="button" class="quiet palette-clear" disabled title="把所有不足最少格数的颜色并入相邻或最接近的颜色，可撤销">整理</button><button id="clearPalette" type="button" class="danger palette-clear" disabled title="删除调色板所有颜色，画布像素同时变为透明，可撤销">清空色板</button></h3><div id="studioPalette" class="studio-palette" aria-label="颜色列表"></div><label class="delta-rule-control">最小色差 <input id="minDeltaE" type="number" min="8" step="0.1" value="12" inputmode="decimal"><small>内置下限 8</small></label><label class="delta-rule-control">最少色块 <input id="minColorPixels" type="number" min="16" max="2304" step="1" value="32" inputmode="numeric"><small>格 · 内置下限 16</small></label><p id="palettePixelNotice" class="rule-notice" hidden></p>
-          <p class="studio-tip">拖动选色点只预览；Shift + 单击添加新颜色，Alt + 单击更新选中颜色。调色板颜色可点击编辑、长按或拖动排序，颜色之间色差至少 <span id="paletteDeltaRule">12</span>；同一颜色在画布上的格子数不能少于 <span id="palettePixelRule">32</span> 格（内置下限 16），导入图片或文本时会自动合并过小色块。</p>
+          <div class="color-actions"><button id="updateSelectedColor" type="button" class="accent" title="也可在色图上按 Alt 单击">更新选中颜色</button><button id="deleteSelectedColor" type="button" class="danger" disabled>删除选中颜色</button><button id="addCandidateColor" type="button" class="quiet add-color-action" title="也可在色图上按 Shift 单击">添加新颜色到调色板</button><button id="setBackgroundColor" type="button" class="quiet background-color-action" title="把选中的调色板颜色设为画布背景色（导出时填充透明像素）">设置为背景色</button></div>
+          <h3>调色板 <span id="studioPaletteCount">0 / 16</span><label class="color-limit-inline" title="颜色数量上限：可调 1–16，不能低于现有颜色数">上限 <input id="maxColors" type="number" min="1" max="16" step="1" value="16" inputmode="numeric"></label><button id="normalizeSmallColors" type="button" class="quiet palette-clear" disabled title="把所有不足最少格数的颜色并入相邻或最接近的颜色，可撤销">整理</button><button id="clearPalette" type="button" class="danger palette-clear" disabled title="删除调色板所有颜色，画布像素同时变为透明，可撤销">清空调色板</button></h3><div id="studioPalette" class="studio-palette" aria-label="颜色列表"></div><label class="delta-rule-control">最小色差 <input id="minDeltaE" type="number" min="8" step="0.1" value="12" inputmode="decimal"><small>最低 8</small></label><label class="delta-rule-control">每色最少格数 <input id="minColorPixels" type="number" min="16" max="2304" step="1" value="32" inputmode="numeric"><small>格 · 最低 16</small></label><p id="palettePixelNotice" class="rule-notice" hidden></p>
+          <p class="studio-tip">色图：Shift + 单击添加，Alt + 单击更新。调色板：点击选中，长按或拖动排序。最小色差 <span id="paletteDeltaRule">12</span>（ΔE00），每色至少 <span id="palettePixelRule">32</span> 格，无须相连。格数不足可点「整理」。</p>
         </section>
       </div>
     </div>
@@ -117,9 +117,9 @@
 <input id="importImageFile" type="file" accept="image/*" hidden>
 <dialog id="importDialog" class="studio-dialog">
   <form method="dialog" class="dialog-frame import-studio">
-    <header><div><span class="eyebrow">IMAGE QUANTIZATION</span><h2>定位并转换图片</h2></div><button class="close-btn" value="close">×</button></header>
+    <header><div><span class="eyebrow">IMAGE QUANTIZATION</span><h2>调整并导入图片</h2></div><button class="close-btn" value="close">×</button></header>
     <div class="import-layout"><div class="import-preview-wrap"><canvas id="importPreview" width="450" height="450"></canvas><p id="importPreviewHint">拖动图片调整位置，滚轮 / 滑块 / 双指缩放</p></div>
-      <aside><label>缩放 <input id="importScale" type="range" min="10" max="500" value="100"><output>100%</output></label><button id="fitImport" type="button" class="quiet wide">适应画布</button><button id="toggleImportPreview" type="button" class="quiet wide" aria-pressed="false">开启预览</button><label class="import-min-delta">颜色最小色差 <input id="importMinDeltaE" type="number" min="8" step="0.1" value="12" inputmode="decimal"><small>与工作台同步</small></label><label class="import-min-delta">颜色最少色块 <input id="importMinColorPixels" type="number" min="16" max="2304" step="1" value="32" inputmode="numeric"><small>格 · 下限 16 · 同步</small></label><div class="import-limit-row"><label class="import-max-colors">颜色数量上限 <input id="importMaxColors" type="number" min="1" max="16" step="1" value="16" inputmode="numeric"><small>与工作台同步</small></label><button id="importClearPalette" type="button" class="quiet" title="清空主画布调色板颜色（需二次确认），便于之后把上限调低">清空颜色</button></div><label class="import-algorithm-select">处理方法 <select id="importAlgorithm"><option value="shift" selected>颜色偏移恢复</option><option value="none">无偏差</option><option value="contrast">增强对比度</option><option value="balanced">区域感知均衡</option></select></label><label class="import-algorithm-option" data-algorithms="shift balanced" hidden>允许偏移色差 <input id="importColorOffset" type="range" min="0" max="20" step="0.5" value="8"><output>8</output></label><label class="import-algorithm-option" data-algorithms="contrast balanced" hidden>目标邻接色差 <input id="importContrastTarget" type="range" min="8" max="30" step="0.5" value="12"><output>12</output></label><label class="import-algorithm-option" data-algorithms="contrast balanced" hidden>对比增强强度 <input id="importContrastStrength" type="range" min="0" max="100" step="5" value="65"><output>65%</output></label><label class="import-algorithm-option" data-algorithms="contrast balanced" hidden>区域识别阈值 <input id="importRegionThreshold" type="range" min="0.5" max="12" step="0.5" value="3"><output>3</output></label><div id="importAlgorithmNote" class="import-note">使用感知色差量化，不主动移动颜色或改变区域关系。</div><button id="confirmImport" type="button" class="accent wide">生成像素画</button></aside>
+      <aside><label>缩放 <input id="importScale" type="range" min="10" max="500" value="100"><output>100%</output></label><button id="fitImport" type="button" class="quiet wide">适应画布</button><button id="toggleImportPreview" type="button" class="quiet wide" aria-pressed="false">预览转换结果</button><label class="import-min-delta">最小色差 <input id="importMinDeltaE" type="number" min="8" step="0.1" value="12" inputmode="decimal"><small>与工作台同步</small></label><label class="import-min-delta">每色最少格数 <input id="importMinColorPixels" type="number" min="16" max="2304" step="1" value="32" inputmode="numeric"><small>格 · 最低 16 · 与工作台同步</small></label><div class="import-limit-row"><label class="import-max-colors">颜色数量上限 <input id="importMaxColors" type="number" min="1" max="16" step="1" value="16" inputmode="numeric"><small>与工作台同步</small></label><button id="importClearPalette" type="button" class="quiet" title="清空调色板并将主画布所有像素变为透明，确认后执行，可撤销">清空调色板</button></div><label class="import-algorithm-select">处理方法 <select id="importAlgorithm"><option value="shift" selected>颜色偏移恢复</option><option value="none">基础量化</option><option value="contrast">增强对比度</option><option value="balanced">区域感知均衡</option></select></label><label class="import-algorithm-option" data-algorithms="shift balanced" hidden>最大颜色偏移 <input id="importColorOffset" type="range" min="0" max="20" step="0.5" value="8"><output>8</output></label><label class="import-algorithm-option" data-algorithms="contrast balanced" hidden>目标邻接色差 <input id="importContrastTarget" type="range" min="8" max="30" step="0.5" value="12"><output>12</output></label><label class="import-algorithm-option" data-algorithms="contrast balanced" hidden>对比增强强度 <input id="importContrastStrength" type="range" min="0" max="100" step="5" value="65"><output>65%</output></label><label class="import-algorithm-option" data-algorithms="contrast balanced" hidden>区域识别阈值 <input id="importRegionThreshold" type="range" min="0.5" max="12" step="0.5" value="3"><output>3</output></label><div id="importAlgorithmNote" class="import-note">在颜色上限内调整配色，尽量保留被合并的颜色。</div><button id="confirmImport" type="button" class="accent wide">生成像素画</button></aside>
     </div>
   </form>
 </dialog>
@@ -150,60 +150,37 @@
     <header><div><span class="eyebrow">TUTORIAL</span><h2>使用教程</h2></div><div class="tutorial-header-actions"><a class="tutorial-edit" href="https://github.com/NMB-Court-Team/pixel-art/edit/main/tutorial.md" target="_blank" rel="noopener noreferrer" title="在 GitHub 上编辑 tutorial.md（新标签页打开）">编辑</a><button type="button" class="close-btn" data-tutorial-close title="关闭">×</button></div></header>
     <div class="tutorial-body">
       <article class="tutorial-page active">
-        <h3>1 · 基础绘制</h3>
-        <ul>
-          <li>顶部选「画笔」或「橡皮」，在二级面板里切换圆形 / 方形笔尖与 0～8 px 半径。</li>
-          <li>画笔完成一笔后，按住 <b>Shift</b> 点击可从上一笔终点继续画直线。</li>
-          <li>按住 <b>Alt</b> 在画布上临时取色（与导出时的 Alt 无关）；快捷键：<b>B</b> 画笔、<b>E</b> 橡皮、<b>F</b> 填充、<b>M</b> 选区、<b>G</b> 网格。</li>
-          <li>填充工具支持「邻接填充」与「选区填充」。</li>
-        </ul>
+        <h3>开始使用</h3>
+        <p>用于制作色盲派对小游戏的地板图案，可直接绘制，也可导入图片。</p><ul><li>画布固定 <b>48×48 像素</b>，最多 <b>16 色</b>。</li><li>默认最小色差 <b>12（ΔE00）</b>，每色至少 <b>32 格</b>，可在调色板下方调整。</li><li>格数按同色像素总数计算，无须相连；未使用的颜色不计。</li><li>添加颜色时检查数量和色差；格数不足会标红，点「整理」合并。</li></ul>
       </article>
       <article class="tutorial-page">
-        <h3>2 · 图形工具</h3>
-        <ul>
-          <li>点击工具栏的「图形」，在二级面板选择 <b>矩形 / 空心矩形 / 圆形 / 空心圆形 / 直线</b>。</li>
-          <li>按住 <b>Shift</b> 拖动可临时反转空心 / 实心（例如实心矩形会变成空心矩形）。</li>
-          <li>绘制的图形沿用当前颜色、笔刷规则与对称设置。</li>
-        </ul>
+        <h3>导入与导出</h3>
+        <ul><li><b>导入图片</b>：调整位置和大小，预览后生成，自动按颜色规则处理。</li><li><b>从文本导入</b>：粘贴本站导出的文本或 floor_patterns 配置。格数不足会合并，色差不足会提示。</li><li><b>导出 PNG</b>：默认 48×48；按住 Alt 点击导出 768×768。文件名留空为「未命名.png」。</li><li><b>导出文本</b>：可复制分享，再用「从文本导入」打开。透明像素会变成背景色，未使用的普通颜色不会恢复。</li><li><b>项目数据</b>：用「复制项目数据」备份透明像素、完整调色板和设置，再用「导入项目数据」恢复。</li><li>有透明像素时，须先设置背景色或补画完整，才能导出 PNG 或文本。</li><li>导出时确认合并会立即修改画布，可撤销。之后取消导出不会撤销合并。</li><li>「提交作品」暂未开放。</li></ul>
       </article>
       <article class="tutorial-page">
-        <h3>3 · 颜色与调色板</h3>
-        <ul>
-          <li>右侧颜色工作室有 <b>色相环 / Lab 色域 / 通道</b> 三种视图，随时切换。</li>
-          <li>拖动选点实时预览；<b>Shift + 单击</b>把候选色加入调色板，<b>Alt + 单击</b>更新选中颜色。</li>
-          <li>「最小色差」限制任意两色的 ΔE00；「颜色上限」控制最多可用颜色数；「最少色块」保证每种颜色占够格子数，不满足时可用「整理」自动合并。</li>
-          <li>「清空色板」会删除调色板所有颜色和画布上的色块（需二次确认，可撤销）。</li>
-        </ul>
+        <h3>颜色与背景</h3>
+        <ul><li>拖动色图选色；<b>Shift + 单击</b>添加，<b>Alt + 单击</b>更新选中颜色，也可点对应按钮。</li><li>色图限制区域内的颜色过于接近已有颜色，添加或更新时会提示。</li><li>更新颜色会改变画布上所有同色像素，不受选区限制。</li><li>删除颜色会将同色像素变透明，并选中全部透明像素。「清空调色板」删除所有颜色和像素，需确认，可撤销。</li><li>选中调色板颜色，点「设置为背景色」。背景色显示在透明处，导出时填满透明像素，不额外占颜色名额。</li><li>背景色格数 = 已绘制的同色像素 + 全部透明像素。</li><li>「最小色差」设置颜色间的最小差异；「上限」设置最多颜色数；「每色最少格数」设置每种已用颜色至少占多少格。</li></ul>
       </article>
       <article class="tutorial-page">
-        <h3>4 · 选区</h3>
-        <ul>
-          <li>选区模式：矩形、手涂、<b>魔棒</b>（相连同色区域）、<b>同色选择</b>（整幅同色，透明背景也能一键全选）。</li>
-          <li>按住 <b>Shift</b> 点击可把新范围并入现有选区。</li>
-          <li>配合「复制 / 剪切 / 移动 / 粘贴」搬运图案，<b>Delete</b> 删除选区内像素，<b>Esc</b> 取消选区。</li>
-        </ul>
+        <h3>绘制与填充</h3>
+        <ul><li>画笔、橡皮支持圆形和方形笔尖，半径 <b>0～8 px</b>；0 为单像素笔尖。</li><li>画笔画完一笔后，<b>Shift + 点击</b>从上一笔终点连直线。</li><li>按住 <b>Alt</b> 在画布上取色。</li><li>「邻接填充」填充相连的同色区域；「选区填充」填满选区，无选区时填满画布。</li><li><b>B / E / F / M</b>：画笔 / 橡皮 / 填充 / 选区。</li><li>自动保存到当前浏览器；<b>Ctrl/Cmd + Z / Y</b> 撤销 / 重做。重要作品请另存项目数据。</li></ul>
       </article>
       <article class="tutorial-page">
-        <h3>5 · 视图与画布</h3>
-        <ul>
-          <li><b>G</b> 或「网格」切换网格（含中心十字，导入图片预览同步显示）。</li>
-          <li>滚轮按 10% 步进缩放，20%～800%；右键拖动画布平移，触屏用双指缩放与移动。</li>
-          <li>「重置视角」让画布居中铺满；「清空」会二次确认后清空整幅画面（与调色板的「清空色板」是两个不同按钮）。</li>
-        </ul>
+        <h3>图形与对称</h3>
+        <ul><li>「图形」支持矩形、圆形及其空心样式，还有直线，拖动即可绘制。</li><li>画矩形或圆形时，按住 <b>Shift</b> 切换实心与空心。</li><li>图形使用当前颜色，受选区和对称设置影响。</li><li>「对称」支持水平、垂直、双向、四向旋转、八向旋转；再点当前模式关闭。</li></ul>
       </article>
       <article class="tutorial-page">
-        <h3>6 · 导入与导出</h3>
-        <ul>
-          <li>「导入图片」可定位、缩放图片并实时预览量化结果（默认使用「颜色偏移恢复」）。</li>
-          <li>「从文本导入」可粘贴「导出文本」生成的纯文本，或 `floor_patterns` 配置，还原画面。</li>
-          <li>「导出 PNG」默认 1×（按住 Alt 为 16×），输出索引色 PNG；这里的 Alt 与画布上按住 Alt 取色互不影响；导出后可点「跳转提交」打开提交地址。</li>
-          <li>画面会自动保存到本地，<b>Ctrl/Cmd + Z</b> 撤销、<b>Ctrl/Cmd + Y</b> 重做。</li>
-        </ul>
+        <h3>选区</h3>
+        <ul><li>「矩形」框选，「手涂」涂选，「魔棒」选上下左右相连的同色区域，「同色选择」选全部同色像素；也能选透明像素。</li><li>按住 <b>Shift</b> 追加选区。有选区时，绘图、擦除和填充只影响选区内。</li><li><b>Ctrl/Cmd + C / X / V</b> 复制 / 剪切 / 粘贴工作台内的选区，也可点按钮。</li><li>移动或粘贴后，<b>Enter</b> 放置，<b>Esc</b> 取消。剪切已删除的像素需用撤销恢复。</li><li><b>Delete</b> 删除选区内像素，保留选区；<b>Esc</b> 取消选区。</li></ul>
+      </article>
+      <article class="tutorial-page">
+        <h3>视图与清空</h3>
+        <ul><li><b>G</b> 或「网格」切换像素网格，导入预览同步切换。</li><li>「背景」显示或隐藏背景色；隐藏时显示透明棋盘格，不影响导出。</li><li>滚轮缩放，右键拖动平移；触屏用双指缩放和平移。</li><li>选「平移」工具后，可用左键或单指拖动画布。</li><li>「重置视角」居中显示完整画布。</li><li>「清空」删除画布像素，保留调色板和背景色，需确认，可撤销。</li></ul>
       </article>
     </div>
     <div class="tutorial-actions">
       <button type="button" id="tutorialPrev" class="quiet">上一页</button>
-      <span id="tutorialProgress" class="tutorial-progress">1 / 6</span>
+      <span id="tutorialProgress" class="tutorial-progress">1 / 7</span>
       <button type="button" id="tutorialNext" class="accent">下一页</button>
     </div>
   </div>

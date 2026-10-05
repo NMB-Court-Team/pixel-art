@@ -20,23 +20,23 @@ body.dark-theme{--bg:#0e1115;--surface:#15191e;--raised:#1a1f25;--soft:#232930;-
   <header class="test-header"><span style="color:var(--muted);font-size:11px">单文件离线版</span><div><span class="eyebrow">DEVELOPER TOOL</span><h1>ΔE00 颜色分辨测试</h1></div><button id="testTheme" class="icon-btn">☼</button></header>
   <section class="test-grid">
     <article class="test-card test-arena">
-      <div id="observeStep" class="test-step active"><span class="step-label">观察基准颜色</span><div id="baseColor" class="base-color"></div><p>记住这个颜色。准备好后隐藏它，再从候选颜色中找回来。</p><button id="startChoices" class="accent">我记住了</button></div>
-      <div id="choiceStep" class="test-step"><span class="step-label">选择最接近的颜色</span><div id="choices" class="choice-grid"></div><p id="choiceHint">根据本轮候选颜色的最小与最大 ΔE00 归一化评分</p></div>
+      <div id="observeStep" class="test-step active"><span class="step-label">观察基准颜色</span><div id="baseColor" class="base-color"></div><p>记住颜色，点「我记住了」，再从候选色中找出它。</p><button id="startChoices" class="accent">我记住了</button></div>
+      <div id="choiceStep" class="test-step"><span class="step-label">选择最接近的颜色</span><div id="choices" class="choice-grid"></div><p id="choiceHint">选对得 100 分；选错时，颜色越接近，得分越高。</p></div>
       <div id="resultStep" class="test-step"><span id="resultBadge" class="result-badge"></span><h2 id="resultTitle"></h2><p id="resultText"></p><button id="nextTrial" class="accent">下一轮</button></div>
     </article>
     <aside class="test-card metrics-card"><span class="eyebrow">LIVE METRICS</span><h2>实时结果</h2>
-      <div class="metric-main"><strong id="threshold">—</strong><span>估计分辨极限 ΔE00</span></div>
-      <div class="metric-row"><span>平均相似度得分</span><b id="accuracy">0</b></div><div class="meter"><i id="accuracyBar"></i></div>
-      <div class="metric-row"><span>完全命中</span><b id="exactRate">0 / 0</b></div>
-      <div class="metric-row"><span>当前难度</span><b id="difficulty">12.0</b></div>
+      <div class="metric-main"><strong id="threshold">—</strong><span>近期平均测试色差 ΔE00</span></div>
+      <div class="metric-row"><span>平均得分</span><b id="accuracy">0</b></div><div class="meter"><i id="accuracyBar"></i></div>
+      <div class="metric-row"><span>选对次数</span><b id="exactRate">0 / 0</b></div>
+      <div class="metric-row"><span>当前目标色差</span><b id="difficulty">12.0</b></div>
       <div class="layout-setting"><div><span>候选布局</span><b id="choiceCount">3 × 3 · 9 格</b></div><div class="layout-inputs"><label>行 <select id="gridRows"><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select></label><span>×</span><label>列 <select id="gridCols"><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select></label></div><small>调整后从下一轮开始生效</small></div>
-      <h3>维度敏感度</h3><div class="axis-metrics"><div><span>L* 明度</span><b id="axisL">—</b></div><div><span>a* 红绿</span><b id="axisA">—</b></div><div><span>b* 黄蓝</span><b id="axisB">—</b></div></div>
+      <h3>各方向平均测试色差</h3><div class="axis-metrics"><div><span>L* 明度</span><b id="axisL">—</b></div><div><span>a* 红绿</span><b id="axisA">—</b></div><div><span>b* 黄蓝</span><b id="axisB">—</b></div></div>
       <h3>选择偏向 <small class="bias-sample" id="biasSample">0 次选择</small></h3><div class="bias-metrics">
         <div class="bias-row"><div class="bias-caption"><span>偏暗</span><b id="biasLValue">—</b><span>偏亮</span></div><div class="bias-track"><i></i><span id="biasLMarker"></span></div></div>
         <div class="bias-row"><div class="bias-caption"><span>偏绿</span><b id="biasAValue">—</b><span>偏红</span></div><div class="bias-track"><i></i><span id="biasAMarker"></span></div></div>
         <div class="bias-row"><div class="bias-caption"><span>偏蓝</span><b id="biasBValue">—</b><span>偏黄</span></div><div class="bias-track"><i></i><span id="biasBMarker"></span></div></div>
       </div>
-      <p class="calibration-note">结果会受屏幕色域、亮度和环境光影响，仅用于比较个人在当前设备上的相对分辨能力。</p>
+      <p class="calibration-note">色差越小越难区分。结果受记忆、屏幕和环境光影响，仅供练习参考。</p>
       <button id="resetTest" class="quiet wide">重置测试</button>
     </aside>
   </section>
@@ -78,8 +78,8 @@ body.dark-theme{--bg:#0e1115;--surface:#15191e;--raised:#1a1f25;--soft:#232930;-
     stats.level=clamp(stats.level*factor,1,30);stats.axis[trial.axis].push((testedLevel+stats.level)/2);if(stats.axis[trial.axis].length>12)stats.axis[trial.axis].shift();
     if(stats.trials>3)stats.thresholds.push(stats.level);if(stats.thresholds.length>18)stats.thresholds.shift();
     $('#resultBadge').className='result-badge '+(score>=72?'good':'bad');$('#resultBadge').textContent=score;
-    $('#resultTitle').textContent=exact?'完全一致 · 100 分':`相似度 ${score} 分`;
-    $('#resultText').textContent=exact?`精确命中基准颜色。本轮干扰色范围为 ΔE00 ${minDeviation.toFixed(2)}～${maxDeviation.toFixed(2)}，下一轮难度调整为 ${stats.level.toFixed(1)}。`:`所选颜色与基准色相差 ΔE00 ${actual.toFixed(2)}；本轮干扰色范围为 ${minDeviation.toFixed(2)}～${maxDeviation.toFixed(2)}。分数按照它在本轮范围中的相对位置计算。`;
+    $('#resultTitle').textContent=exact?'完全一致 · 100 分':`本轮得分 ${score} 分`;
+    $('#resultText').textContent=exact?`你选中了基准颜色。本轮干扰色色差为 ΔE00 ${minDeviation.toFixed(2)}～${maxDeviation.toFixed(2)}，下一轮目标色差调整为 ${stats.level.toFixed(1)}。`:`所选颜色与基准色相差 ΔE00 ${actual.toFixed(2)}；本轮干扰色色差为 ${minDeviation.toFixed(2)}～${maxDeviation.toFixed(2)}。未选中基准色时最高 95 分，色差越小得分越高。`;
     show('resultStep');updateMetrics()
   }
   function average(a){return a.length?a.reduce((x,y)=>x+y,0)/a.length:null}
