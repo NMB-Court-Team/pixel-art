@@ -206,7 +206,8 @@
     setTimeout(()=>{t.classList.remove('show');setTimeout(()=>{if(topLayer){try{t.hidePopover()}catch(e){}}t.remove()},220)},1900);
   }
   // 与网页风格一致的中置确认弹窗（替代浏览器原生 confirm）；notice:true 时只保留一个按钮
-  function styledConfirm(message,{title='请确认',okText='确定',danger=true,notice=false}={}){
+  // actions：可选附加按钮 [{label,value,className,onClick}]，排在确定按钮左侧；点击后关闭弹窗并执行 onClick，返回值仍只表示「是否点了确定」
+  function styledConfirm(message,{title='请确认',okText='确定',danger=true,notice=false,actions=[]}={}){
     return new Promise(resolve=>{
       const dialog=document.createElement('dialog');
       dialog.className='studio-dialog confirm-dialog';
@@ -217,6 +218,13 @@
       frame.querySelector('.confirm-message').textContent=message;
       const ok=frame.querySelector('[data-choice="ok"]');
       ok.textContent=okText;ok.className=danger?'danger':'accent';
+      const actionHandlers=new Map();
+      actions.forEach((action,index)=>{
+        const value=action.value||`action-${index}`,button=document.createElement('button');
+        button.type='button';button.dataset.choice=value;button.className=action.className||'quiet';button.textContent=action.label;
+        ok.before(button);
+        if(action.onClick)actionHandlers.set(value,action.onClick);
+      });
       if(notice)frame.querySelector('[data-choice="cancel"]').remove();
       frame.addEventListener('click',e=>{
         const btn=e.target.closest('[data-choice]');
@@ -225,7 +233,7 @@
       });
       dialog.append(frame);document.body.append(dialog);
       dialog.addEventListener('cancel',e=>{e.preventDefault();dialog.close('cancel')});
-      dialog.addEventListener('close',()=>{dialog.remove();resolve(dialog.returnValue==='ok')});
+      dialog.addEventListener('close',()=>{const choice=dialog.returnValue;dialog.remove();resolve(choice==='ok');actionHandlers.get(choice)?.()});
       dialog.showModal();ok.focus();
     });
   }
@@ -461,6 +469,14 @@
     selection.add(i);n++;renderSelection();return {target,n};
   }
 
+  // 全选透明格：导出前提示「存在透明像素」时一键选中，便于补画或用选区填充/擦除
+  function selectAllTransparentPixels(){
+    const n=transparentCount();
+    if(!n)return toast('画布上没有透明像素');
+    selection.clear();state.pixels.forEach((id,i)=>{if(id==null)selection.add(i)});
+    renderSelection();toast(`已选中全部透明像素（${n} 格）`);
+  }
+
   function boundsOfSelection(){if(!selection.size)return null;const xs=[...selection].map(i=>i%SIZE),ys=[...selection].map(i=>Math.floor(i/SIZE));return {minX:Math.min(...xs),maxX:Math.max(...xs),minY:Math.min(...ys),maxY:Math.max(...ys)}}
   function copySelection(){const b=boundsOfSelection();if(!b)return toast('请先选择画布区域');const cells=Array.from({length:b.maxY-b.minY+1},()=>Array(b.maxX-b.minX+1));selection.forEach(i=>{const x=i%SIZE,y=Math.floor(i/SIZE);cells[y-b.minY][x-b.minX]={selected:true,id:state.pixels[i]}});clipboard={w:cells[0].length,h:cells.length,cells};toast('已复制选区')}
   function cutSelection(move=false){if(!selection.size)return toast('请先选择画布区域');copySelection();beginAction(move?'移动选区':'剪切选区');selection.forEach(i=>state.pixels[i]=null);renderCanvas();if(!move)commitAction();beginPaste();}
@@ -631,7 +647,7 @@
   async function resolveExportRuleBreaks(){
     const transparent=transparentCount();
     if(transparent&&!state.backgroundColorId){
-      await styledConfirm(`还有 ${transparent} 个透明像素，无法导出。请选中调色板颜色并点「设置为背景色」，或补画完整。`,{title:'存在透明像素',okText:'知道了',danger:false,notice:true});
+      await styledConfirm(`还有 ${transparent} 个透明像素，无法导出。可点「选中所有透明像素」集中补画，或选中调色板颜色并点「设置为背景色」。`,{title:'存在透明像素',okText:'知道了',danger:false,notice:true,actions:[{label:'选中所有透明像素',value:'select-transparent',onClick:selectAllTransparentPixels}]});
       return false;
     }
     const min=state.minColorPixels,list=shortColorEntries();
