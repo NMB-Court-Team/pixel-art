@@ -14,7 +14,7 @@
 <div class="app">
   <header class="topbar">
     <nav id="toolStrip" class="tool-strip" aria-label="绘图工具">
-      <button class="tool" data-action="files" data-panel="filesPanel" title="导入导出"><i>⇅</i><span>文件</span></button>
+      <button class="tool" data-action="files" data-panel="filesPanel" title="导入图片转换成像素画 / 导出像素画为图片 / 提交像素画"><i>⇅</i><span>导入导出</span></button>
       <button class="tool" data-tool="pan" title="移动视图：按住拖动平移画布"><i>✥</i><span>平移</span></button>
       <button class="tool active" data-tool="pen" data-panel="brushPanel" title="画笔 B · Shift 点击连接上一笔终点"><i>✎</i><span>画笔</span></button>
       <button class="tool" data-tool="eraser" data-panel="brushPanel" title="橡皮 E"><i>◇</i><span>橡皮</span></button>
@@ -61,7 +61,7 @@
     </div>
     <div id="historyPanel" class="option-panel history-panel"><span class="panel-label">历史记录</span><div id="historyList" class="history-list"></div></div>
     <div id="filesPanel" class="option-panel">
-      <span class="panel-label">文件</span><button id="importImage">导入图片</button><button id="exportPng" class="accent" title="导出 1× PNG 并可自定义文件名；按住 Alt 导出 16×">导出 PNG</button><button id="exportText" class="quiet" title="导出纯文本格式">导出文本</button><button id="submitWork" class="quiet" title="在新标签页打开作品提交问卷">提交作品</button>
+      <span class="panel-label">文件</span><button id="importImage">转换图片到像素画</button><button id="exportPng" class="accent" title="导出图片并可自定义文件名；按住 Alt 导出16×大小">导出图片</button><button id="exportText" class="quiet" title="导出纯文本格式">导出文本</button><button id="submitWork" class="quiet" title="在新标签页打开作品提交问卷">提交作品</button>
       <button id="exportData">复制项目数据</button><button id="importData">导入项目数据</button><button id="importConfig">从文本导入</button>
     </div>
   </section>
